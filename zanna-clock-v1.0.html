@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Zanna Clock</title>
+<style>
+  :root {
+    --bg: #101418; --card: #1c232b; --card2: #232d37; --text: #f2f5f7;
+    --muted: #93a1ad; --accent: #ffb347; --green: #2ecc71; --amber: #f39c12;
+    --red: #e74c3c; --blue: #3498db;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: var(--bg);
+         color: var(--text); min-height: 100vh; }
+  header { padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;
+           border-bottom: 1px solid #2a343f; }
+  header h1 { font-size: 1.3rem; letter-spacing: .5px; }
+  header h1 span { color: var(--accent); }
+  #clockNow { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 1.1rem; }
+  main { padding: 18px; max-width: 1100px; margin: 0 auto; }
+  .hidden { display: none !important; }
+  .btn { border: 0; border-radius: 14px; font-size: 1.25rem; font-weight: 600; padding: 20px;
+         cursor: pointer; color: #fff; background: var(--card2); width: 100%; margin: 8px 0;
+         transition: transform .06s; }
+  .btn:active { transform: scale(.97); }
+  .btn.primary { background: var(--blue); }  .btn.green { background: var(--green); color:#08321c; }
+  .btn.red { background: var(--red); }       .btn.amber { background: var(--amber); color:#3d2703; }
+  .btn.ghost { background: transparent; border: 2px solid #37434f; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .grid .btn { margin: 0; min-height: 76px; font-size: 1.1rem; }
+  .msg { text-align: center; padding: 12px; border-radius: 10px; margin: 10px 0; font-weight: 600; }
+  .msg.err { background: #4a1f1c; color: #ffb4ac; } .msg.ok { background: #14351f; color: #9fe8b9; }
+  h2 { font-size: 1.15rem; color: var(--muted); margin: 16px 0 10px; font-weight: 600; }
+  /* PIN pad */
+  #pinDots { text-align: center; font-size: 2.2rem; letter-spacing: 14px; min-height: 52px; margin: 8px 0; }
+  .pinpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 340px; margin: 0 auto; }
+  .pinpad .btn { min-height: 72px; font-size: 1.6rem; margin: 0; }
+  /* Display cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .card { background: var(--card); border-radius: 16px; padding: 18px; border-left: 10px solid var(--green); }
+  .card.amber { border-color: var(--amber); } .card.red { border-color: var(--red); }
+  .card.neutral { border-color: var(--blue); }
+  .card .who { font-size: 1.4rem; font-weight: 700; }
+  .card .dept { color: var(--muted); margin: 2px 0 8px; }
+  .card .what { font-size: 1.05rem; }
+  .card .timer { font-size: 2rem; font-variant-numeric: tabular-nums; font-weight: 700; margin-top: 6px; }
+  .card.red .timer { color: var(--red); } .card.amber .timer { color: var(--amber); }
+  .off { display: inline-block; background: #37434f; border-radius: 6px; padding: 2px 8px;
+         font-size: .8rem; margin-left: 8px; color: var(--muted); }
+  .empty { text-align: center; color: var(--muted); font-size: 1.4rem; padding: 60px 0; }
+  /* Emergency */
+  .emg-count { text-align: center; font-size: 4rem; font-weight: 800; color: var(--red); }
+  .emg-sub { text-align: center; color: var(--muted); margin-bottom: 18px; }
+  .dept-block { background: var(--card); border-radius: 12px; padding: 14px 18px; margin-bottom: 12px; }
+  .dept-block h3 { color: var(--accent); margin-bottom: 8px; }
+  .dept-block li { list-style: none; padding: 6px 0; border-bottom: 1px solid #2a343f; font-size: 1.15rem; }
+  .dept-block li:last-child { border: 0; }
+  .tag { font-size: .75rem; background: #37434f; border-radius: 6px; padding: 2px 8px; margin-left: 8px; color: var(--muted); }
+  .stale { background: var(--red); color: #fff; text-align: center; padding: 10px; border-radius: 10px;
+           margin-bottom: 12px; font-weight: 700; }
+  footer { text-align: center; color: #56636e; padding: 14px; font-size: .8rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Zanna <span>Clock</span> <small id="viewLabel" style="color:var(--muted);font-weight:400"></small></h1>
+  <div id="clockNow"></div>
+</header>
+<main>
+  <div id="setupErr" class="msg err hidden"></div>
+
+  <!-- ============ KIOSK ============ -->
+  <section id="kiosk" class="hidden">
+    <div id="kMsg"></div>
+
+    <div id="kStaff">
+      <h2>Tap your name</h2>
+      <div class="grid" id="staffGrid"></div>
+    </div>
+
+    <div id="kPin" class="hidden">
+      <h2 id="pinTitle" style="text-align:center"></h2>
+      <div id="pinDots">– – – –</div>
+      <div class="pinpad" id="pinPad"></div>
+      <button class="btn ghost" onclick="backToStaff()">← Back</button>
+    </div>
+
+    <div id="kActions" class="hidden">
+      <h2 id="actTitle" style="text-align:center"></h2>
+      <div id="actButtons"></div>
+      <button class="btn ghost" onclick="backToStaff()">Done</button>
+    </div>
+
+    <div id="kPremises" class="hidden">
+      <h2 style="text-align:center">Where will you take this break?</h2>
+      <button class="btn primary" onclick="confirmBreak('ON')">🏠 On premises</button>
+      <button class="btn amber" onclick="confirmBreak('OFF')">🚶 Off premises (leaving the building)</button>
+      <button class="btn ghost" onclick="showActions()">← Back</button>
+    </div>
+  </section>
+
+  <!-- ============ DISPLAY (canteen / office) ============ -->
+  <section id="display" class="hidden">
+    <div id="staleWarn" class="stale hidden">⚠ Display not updating — check connection</div>
+    <div class="cards" id="cards"></div>
+    <div id="noBreaks" class="empty hidden">No one is on a break right now</div>
+  </section>
+
+  <!-- ============ EMERGENCY ============ -->
+  <section id="emergency" class="hidden">
+    <div id="emgStale" class="stale hidden">⚠ Register not updating — treat with caution</div>
+    <div class="emg-count" id="emgCount">–</div>
+    <div class="emg-sub">people currently in the building</div>
+    <div id="emgDepts"></div>
+    <div id="emgOff"></div>
+    <button class="btn primary" onclick="refreshEmergency()">🔄 Refresh now</button>
+  </section>
+</main>
+<footer>Zanna Clock v1.0 · Quantum Build AI</footer>
+
+<script>
+/* ------------------------------------------------------------------ config */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyJDs7Dh8UDakGcczmSdpcWBCDacKsXhIh8ZALlijaZE413VHO--ZCS7A4FaJDnYtcm/exec';
+const POLL_MS = 15000;
+
+/* URL: #t=<deviceToken>&v=kiosk|canteen|office|emergency */
+const params = Object.fromEntries(new URLSearchParams(location.hash.slice(1)));
+const TOKEN = params.t || '';
+const VIEW  = (params.v || 'kiosk').toLowerCase();
+
+let session = { name: '', pin: '', state: null, settingPin: false };
+let pinBuf = '', pendingBreak = '', lastPollOk = 0;
+let amberPct = 80, serverOffsetMs = 0;
+
+/* ------------------------------------------------------------------ api */
+async function api(action, body = {}) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // avoids CORS preflight
+    body: JSON.stringify(Object.assign({ action, deviceToken: TOKEN }, body))
+  });
+  return res.json();
+}
+
+/* ------------------------------------------------------------------ boot */
+function boot() {
+  setInterval(() => {
+    document.getElementById('clockNow').textContent = new Date().toLocaleTimeString('en-IE');
+  }, 1000);
+  if (!TOKEN) return fatal('No device token in URL. Ask management for this device\u2019s link.');
+  if (API_URL.indexOf('PASTE_') === 0) return fatal('API_URL not configured in this file.');
+
+  if (VIEW === 'kiosk') { show('kiosk'); label('Kiosk'); loadStaff(); }
+  else if (VIEW === 'canteen' || VIEW === 'office') {
+    show('display'); label(VIEW === 'canteen' ? 'Canteen' : 'Office');
+    pollDisplay(); setInterval(pollDisplay, POLL_MS);
+    setInterval(renderTimers, 1000); setInterval(staleCheck, 5000);
+  }
+  else if (VIEW === 'emergency') {
+    show('emergency'); label('EMERGENCY ROLL CALL');
+    refreshEmergency(); setInterval(refreshEmergency, POLL_MS);
+  }
+  else fatal('Unknown view: ' + VIEW);
+}
+function show(id) { ['kiosk','display','emergency'].forEach(s =>
+  document.getElementById(s).classList.toggle('hidden', s !== id)); }
+function label(t) { document.getElementById('viewLabel').textContent = '· ' + t; }
+function fatal(t) { const el = document.getElementById('setupErr');
+  el.textContent = t; el.classList.remove('hidden'); }
+
+/* ------------------------------------------------------------------ kiosk */
+async function loadStaff() {
+  kmsg('');
+  const grid = document.getElementById('staffGrid');
+  grid.innerHTML = '<button class="btn" disabled>Loading…</button>';
+  try {
+    const r = await api('getStaff');
+    if (!r.ok) return kmsg(r.error, true);
+    grid.innerHTML = '';
+    r.staff.forEach(s => {
+      const b = document.createElement('button');
+      b.className = 'btn'; b.textContent = s.name;
+      b.onclick = () => pickStaff(s);
+      grid.appendChild(b);
+    });
+    if (!r.staff.length) kmsg('No staff yet — management: run the Scheduler sync.', true);
+  } catch (e) { kmsg('Connection problem — try again.', true); }
+}
+
+function pickStaff(s) {
+  session = { name: s.name, pin: '', state: null, settingPin: !s.hasPin };
+  pinBuf = '';
+  document.getElementById('pinTitle').textContent = session.settingPin
+    ? 'Hi ' + s.name + ' — choose a 4-digit PIN (first time)'
+    : 'Hi ' + s.name + ' — enter your PIN';
+  renderPinPad(); renderDots();
+  swapKiosk('kPin');
+}
+
+function renderPinPad() {
+  const pad = document.getElementById('pinPad');
+  pad.innerHTML = '';
+  ['1','2','3','4','5','6','7','8','9','⌫','0','OK'].forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'btn' + (k === 'OK' ? ' green' : ''); b.textContent = k;
+    b.onclick = () => pinKey(k);
+    pad.appendChild(b);
+  });
+}
+function pinKey(k) {
+  if (k === '⌫') pinBuf = pinBuf.slice(0, -1);
+  else if (k === 'OK') return submitPin();
+  else if (pinBuf.length < 4) pinBuf += k;
+  renderDots();
+}
+function renderDots() {
+  document.getElementById('pinDots').textContent =
+    Array.from({length: 4}, (_, i) => pinBuf[i] ? '●' : '–').join(' ');
+}
+
+async function submitPin() {
+  if (pinBuf.length !== 4) return kmsg('PIN must be 4 digits', true);
+  kmsg('Checking…');
+  try {
+    if (session.settingPin) {
+      const r = await api('setPin', { name: session.name, pin: pinBuf });
+      if (!r.ok) return kmsg(r.error, true);
+      kmsg('PIN saved ✓');
+    }
+    session.pin = pinBuf;
+    const r2 = await api('startSession', { name: session.name, pin: session.pin });
+    if (!r2.ok) return kmsg(r2.error || 'PIN check failed', true);
+    session.state = r2.state;
+    kmsg('');
+    showActions();
+  } catch (e) { kmsg('Connection problem — try again.', true); }
+}
+
+function showActions() {
+  const st = session.state, box = document.getElementById('actButtons');
+  document.getElementById('actTitle').textContent = session.name + ' — ' + friendly(st);
+  box.innerHTML = '';
+  const add = (label, cls, fn) => {
+    const b = document.createElement('button');
+    b.className = 'btn ' + cls; b.textContent = label; b.onclick = fn;
+    box.appendChild(b);
+  };
+  if (st.status === 'OUT') add('🟢 Clock IN — start shift', 'green', () => doEvent('clockIn'));
+  if (st.status === 'WORKING') {
+    add('☕ 15 minute break', 'primary', () => askPremises('B15'));
+    add('🍽 30 minute break', 'primary', () => askPremises('B30'));
+    add('🚻 Comfort break', 'ghost', () => startBreak('COMFORT', 'ON'));
+    add('🔴 Clock OUT — end shift', 'red', () => doEvent('clockOut'));
+  }
+  if (st.status === 'ON_BREAK') add('✅ End my break', 'green', () => doEvent('endBreak'));
+  swapKiosk('kActions');
+}
+function friendly(st) {
+  if (st.status === 'OUT') return 'not clocked in';
+  if (st.status === 'WORKING') return 'on shift';
+  return 'on ' + breakName(st.breakType) + (st.premises === 'OFF' ? ' (off premises)' : '');
+}
+function breakName(t) { return t === 'B15' ? '15 min break' : t === 'B30' ? '30 min break'
+  : t === 'COMFORT' ? 'comfort break' : 'break'; }
+
+function askPremises(type) { pendingBreak = type; swapKiosk('kPremises'); }
+function confirmBreak(where) { startBreak(pendingBreak, where); }
+async function startBreak(type, where) {
+  await doEvent('startBreak', { breakType: type, premises: where });
+}
+
+async function doEvent(action, extra = {}) {
+  kmsg('Saving…');
+  try {
+    const r = await api(action, Object.assign({ name: session.name, pin: session.pin }, extra));
+    if (!r.ok) { kmsg(r.error, true); showActions(); return; }
+    session.state = r.state;
+    kmsg('Done ✓');
+    if (action === 'clockOut') return setTimeout(backToStaff, 1200);
+    showActions();
+  } catch (e) { kmsg('Connection problem — nothing saved. Try again.', true); }
+}
+
+function swapKiosk(id) { ['kStaff','kPin','kActions','kPremises'].forEach(s =>
+  document.getElementById(s).classList.toggle('hidden', s !== id)); }
+function backToStaff() { session = { name:'', pin:'', state:null, settingPin:false };
+  pinBuf=''; kmsg(''); swapKiosk('kStaff'); loadStaff(); }
+function kmsg(t, err) { document.getElementById('kMsg').innerHTML =
+  t ? '<div class="msg ' + (err ? 'err' : 'ok') + '">' + t + '</div>' : ''; }
+
+/* ------------------------------------------------------------------ display */
+let liveBreaks = [];
+async function pollDisplay() {
+  try {
+    const r = await api('liveStatus');
+    if (!r.ok) return;
+    liveBreaks = r.breaks; amberPct = r.amberPct || 80;
+    serverOffsetMs = new Date(r.serverTime) - new Date();
+    lastPollOk = Date.now();
+    renderTimers();
+  } catch (e) {}
+}
+function renderTimers() {
+  const wrap = document.getElementById('cards');
+  const now = Date.now() + serverOffsetMs;
+  document.getElementById('noBreaks').classList.toggle('hidden', liveBreaks.length > 0);
+  wrap.innerHTML = '';
+  liveBreaks.forEach(b => {
+    const mins = (now - new Date(b.since)) / 60000;
+    let cls = 'neutral', timer = fmt(mins);
+    if (b.allowedMins) {
+      cls = mins >= b.allowedMins ? 'red' : (mins >= b.allowedMins * amberPct / 100 ? 'amber' : '');
+      timer = fmt(mins) + ' <span style="font-size:1rem;color:var(--muted)">/ ' + b.allowedMins + ' min</span>';
+    }
+    const card = document.createElement('div');
+    card.className = 'card ' + cls;
+    card.innerHTML =
+      '<div class="who">' + esc(b.name) + '</div>' +
+      '<div class="dept">' + esc(b.dept) + '</div>' +
+      '<div class="what">' + breakName(b.breakType === 'BREAK' ? '' : b.breakType) +
+        (b.premises === 'OFF' ? '<span class="off">off premises</span>' : '') + '</div>' +
+      '<div class="timer">' + timer + '</div>';
+    wrap.appendChild(card);
+  });
+}
+function fmt(mins) {
+  const m = Math.floor(mins), s = Math.floor((mins - m) * 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
+function staleCheck() {
+  document.getElementById('staleWarn').classList.toggle('hidden',
+    Date.now() - lastPollOk < POLL_MS * 3);
+}
+
+/* ------------------------------------------------------------------ emergency */
+async function refreshEmergency() {
+  try {
+    const r = await api('emergency');
+    if (!r.ok) return;
+    lastPollOk = Date.now();
+    document.getElementById('emgStale').classList.add('hidden');
+    document.getElementById('emgCount').textContent = r.count;
+    const wrap = document.getElementById('emgDepts');
+    wrap.innerHTML = '';
+    Object.keys(r.inBuilding).sort().forEach(dept => {
+      const block = document.createElement('div');
+      block.className = 'dept-block';
+      block.innerHTML = '<h3>' + esc(dept) + ' (' + r.inBuilding[dept].length + ')</h3><ul>' +
+        r.inBuilding[dept].map(p => '<li>' + esc(p.name) +
+          (p.onBreak ? '<span class="tag">on break — check break areas</span>' : '') +
+          '</li>').join('') + '</ul>';
+      wrap.appendChild(block);
+    });
+    const off = document.getElementById('emgOff');
+    off.innerHTML = r.offSite.length
+      ? '<div class="dept-block"><h3 style="color:var(--muted)">Off premises — NOT in building (' +
+        r.offSite.length + ')</h3><ul>' +
+        r.offSite.map(p => '<li>' + esc(p.name) + ' <span class="tag">' + esc(p.dept) + '</span></li>').join('') +
+        '</ul></div>' : '';
+  } catch (e) {
+    document.getElementById('emgStale').classList.remove('hidden');
+  }
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+boot();
+</script>
+</body>
+</html>
