@@ -46,8 +46,10 @@
   .card .what { font-size: 1.05rem; }
   .card .timer { font-size: 2rem; font-variant-numeric: tabular-nums; font-weight: 700; margin-top: 6px; }
   .card.red .timer { color: var(--red); } .card.amber .timer { color: var(--amber); }
-  .off { display: inline-block; background: #37434f; border-radius: 6px; padding: 2px 8px;
-         font-size: .8rem; margin-left: 8px; color: var(--muted); }
+  .off { display: inline-block; background: var(--amber); border-radius: 6px; padding: 3px 10px;
+         font-size: .9rem; font-weight: 800; margin-left: 8px; color: #3d2703;
+         text-transform: uppercase; letter-spacing: .5px; }
+  .card.offsite { outline: 3px dashed var(--amber); outline-offset: -3px; background: #26221a; }
   .empty { text-align: center; color: var(--muted); font-size: 1.4rem; padding: 60px 0; }
   /* Emergency */
   .emg-count { text-align: center; font-size: 4rem; font-weight: 800; color: var(--red); }
@@ -314,12 +316,12 @@ function renderTimers() {
       timer = fmt(mins) + ' <span style="font-size:1rem;color:var(--muted)">/ ' + b.allowedMins + ' min</span>';
     }
     const card = document.createElement('div');
-    card.className = 'card ' + cls;
+    card.className = 'card ' + cls + (b.premises === 'OFF' ? ' offsite' : '');
     card.innerHTML =
       '<div class="who">' + esc(b.name) + '</div>' +
       '<div class="dept">' + esc(b.dept) + '</div>' +
       '<div class="what">' + breakName(b.breakType === 'BREAK' ? '' : b.breakType) +
-        (b.premises === 'OFF' ? '<span class="off">off premises</span>' : '') + '</div>' +
+        (b.premises === 'OFF' ? '<span class="off">🚶 Off premises</span>' : '') + '</div>' +
       '<div class="timer">' + timer + '</div>';
     wrap.appendChild(card);
   });
@@ -354,7 +356,7 @@ async function refreshEmergency() {
     });
     const off = document.getElementById('emgOff');
     off.innerHTML = r.offSite.length
-      ? '<div class="dept-block"><h3 style="color:var(--muted)">Off premises — NOT in building (' +
+      ? '<div class="dept-block" style="outline:3px dashed var(--amber);outline-offset:-3px"><h3 style="color:var(--amber)">🚶 OFF PREMISES — NOT in building (' +
         r.offSite.length + ')</h3><ul>' +
         r.offSite.map(p => '<li>' + esc(p.name) + ' <span class="tag">' + esc(p.dept) + '</span></li>').join('') +
         '</ul></div>' : '';
