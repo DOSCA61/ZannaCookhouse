@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FairLeave — Self-Managed Holiday System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1EF; --surface:#FFFFFF; --ink:#1E2A26; --muted:#5D6C67;
+  --pine:#175E54; --pine-deep:#0E3F38; --pine-soft:#DCEAE6;
+  --amber:#C97E06; --amber-soft:#FBEED3;
+  --red:#A63D2F; --red-soft:#F7E3DF;
+  --line:#D7E0DC; --radius:14px;
+  --font-display:'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body:'Inter', system-ui, sans-serif;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{background:var(--bg); color:var(--ink); font-family:var(--font-body); font-size:15px; line-height:1.5;}
+button{font-family:var(--font-body); cursor:pointer;}
+input,select{font-family:var(--font-body); font-size:14px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink);}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--pine); outline-offset:1px;}
+.wrap{max-width:1080px; margin:0 auto; padding:20px 16px 60px;}
+header.top{display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between; margin-bottom:22px;}
+.brand h1{font-family:var(--font-display); font-weight:800; font-size:26px; letter-spacing:-.02em; color:var(--pine-deep);}
+.brand h1 .dot{color:var(--amber);}
+.brand p{font-size:12.5px; color:var(--muted); margin-top:-2px;}
+.who-bar{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted);}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px;}
+.grid{display:grid; gap:16px;}
+@media(min-width:860px){ .grid.two{grid-template-columns:1.5fr 1fr;} }
+h2{font-family:var(--font-display); font-weight:700; font-size:18px; letter-spacing:-.01em; margin-bottom:10px;}
+.sub{font-size:12.5px; color:var(--muted);}
+.btn{border:none; border-radius:9px; padding:9px 16px; font-weight:600; font-size:13.5px;}
+.btn.primary{background:var(--pine); color:#fff;}
+.btn.primary:hover{background:var(--pine-deep);}
+.btn.ghost{background:#fff; border:1px solid var(--line); color:var(--ink);}
+.btn.ghost:hover{border-color:var(--pine);}
+.btn.danger{background:var(--red-soft); color:var(--red);}
+.btn.small{padding:5px 10px; font-size:12.5px;}
+.btn:disabled{opacity:.45; cursor:not-allowed;}
+.tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;}
+.tabs button{border:1px solid var(--line); background:#fff; border-radius:9px; padding:7px 14px; font-size:13.5px; font-weight:600; color:var(--muted);}
+.tabs button.on{background:var(--pine-soft); border-color:var(--pine); color:var(--pine-deep);}
+.tabs button .badge{display:inline-block; min-width:18px; padding:0 5px; margin-left:5px; border-radius:999px; background:var(--amber); color:#fff; font-size:11px; line-height:18px;}
+.cal-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
+.cal-title{font-family:var(--font-display); font-weight:700; font-size:17px;}
+.cal-nav{display:flex; gap:6px;}
+.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+.cal-dow{font-size:11px; font-weight:700; color:var(--muted); text-align:center; text-transform:uppercase; letter-spacing:.06em; padding:4px 0;}
+.cal-cell{min-height:74px; border:1px solid var(--line); border-radius:9px; padding:5px 6px; background:#fff; position:relative; font-size:12px;}
+.cal-cell.pad{background:transparent; border-color:transparent;}
+.cal-cell.rest{background:#F4F7F5;}
+.cal-cell.blackout{background:repeating-linear-gradient(-45deg,#EFE2DE 0 6px,#F8EFEC 6px 12px); border-color:#E3C8C0;}
+.cal-cell.today{outline:2px solid var(--pine); outline-offset:-2px;}
+.cal-cell .d{font-weight:700;}
+.cal-cell.blackout .d::after{content:"×"; color:var(--red); margin-left:4px; font-weight:800;}
+.pips{display:flex; gap:3px; margin-top:3px;}
+.pip{width:9px; height:9px; border-radius:999px; border:1.5px solid var(--pine); background:#fff;}
+.pip.full{background:var(--pine);}
+.pip.over{background:var(--red); border-color:var(--red);}
+.who{display:flex; flex-wrap:wrap; gap:2px; margin-top:4px;}
+.chip{background:var(--amber-soft); color:#7A4E04; border-radius:5px; padding:0 4px; font-size:10.5px; font-weight:700;}
+.chip.me{background:var(--pine-soft); color:var(--pine-deep);}
+.legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; font-size:12px; color:var(--muted); align-items:center;}
+.legend span{display:inline-flex; align-items:center; gap:5px;}
+.swatch{width:12px; height:12px; border-radius:4px; display:inline-block;}
+.frow{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px;}
+.frow label{display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:600; color:var(--muted);}
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th{text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:8px 8px; border-bottom:1px solid var(--line);}
+td{padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+.tag{display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700;}
+.tag.approved{background:var(--pine-soft); color:var(--pine-deep);}
+.tag.pending{background:var(--amber-soft); color:#7A4E04;}
+.tag.cancelled,.tag.declined,.tag.failed{background:#ECEEED; color:var(--muted);}
+.tag.blackout{background:var(--red-soft); color:var(--red);}
+.me-strip{display:flex; gap:16px; align-items:center; flex-wrap:wrap;}
+.ring{position:relative; width:78px; height:78px; flex:none;}
+.ring svg{transform:rotate(-90deg);}
+.ring .num{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:var(--font-display);}
+.ring .num b{font-size:20px; line-height:1;}
+.ring .num small{font-size:9.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;}
+.notice{border-radius:10px; padding:12px 14px; font-size:13.5px; margin-top:10px;}
+.notice.err{background:var(--red-soft); color:#6E2A1F;}
+.notice.warn{background:var(--amber-soft); color:#6B4503;}
+.conflict-item{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed var(--line);}
+.conflict-item:last-child{border-bottom:none;}
+#toast{position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 20px; border-radius:10px; font-size:13.5px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; z-index:99; max-width:88vw; text-align:center;}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+.empty{color:var(--muted); font-size:13.5px; padding:14px 4px; text-align:center;}
+.mt{margin-top:16px;} .mb{margin-bottom:12px;}
+.login-box{max-width:460px; margin:6vh auto 0;}
+.login-box h2{margin-bottom:4px;}
+.login-box .frow{margin-top:14px;}
+.hr{border:none; border-top:1px solid var(--line); margin:16px 0;}
+.spin{display:inline-block; width:14px; height:14px; border:2px solid #fff8; border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; vertical-align:-2px; margin-right:6px;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.modal-bg{position:fixed; inset:0; background:rgba(20,30,27,.45); display:flex; align-items:center; justify-content:center; z-index:50; padding:16px;}
+.modal{background:#fff; border-radius:var(--radius); padding:20px; max-width:440px; width:100%;}
+.linkbox{font-size:11.5px; background:#F4F7F5; border:1px solid var(--line); border-radius:7px; padding:4px 8px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; vertical-align:middle;}
+/* ---------- help chat bot ---------- */
+.help-fab{position:fixed; right:18px; bottom:18px; width:52px; height:52px; border-radius:50%; background:var(--pine); color:#fff; border:none; font-size:22px; line-height:1; box-shadow:0 4px 14px rgba(14,63,56,.35); z-index:60;}
+.help-fab:hover{background:var(--pine-deep);}
+.help-panel{position:fixed; right:18px; bottom:80px; width:350px; max-width:calc(100vw - 24px); height:460px; max-height:72vh; background:#fff; border:1px solid var(--line); border-radius:14px; display:flex; flex-direction:column; overflow:hidden; z-index:60; box-shadow:0 10px 30px rgba(20,30,27,.25);}
+.help-head{background:var(--pine); color:#fff; padding:10px 14px; font-family:var(--font-display); font-weight:700; font-size:14.5px; display:flex; justify-content:space-between; align-items:center;}
+.help-head button{background:transparent; border:none; color:#fff; font-size:17px;}
+.help-msgs{flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; font-size:13.5px;}
+.hmsg{max-width:88%; padding:8px 11px; border-radius:11px; white-space:pre-wrap; line-height:1.45;}
+.hmsg.user{align-self:flex-end; background:var(--pine-soft); color:var(--pine-deep);}
+.hmsg.bot{align-self:flex-start; background:#F4F7F5; border:1px solid var(--line);}
+.hmsg.think{align-self:flex-start; color:var(--muted); font-style:italic;}
+.help-in{display:flex; gap:6px; padding:10px; border-top:1px solid var(--line);}
+.help-in input{flex:1;}
+.help-hints{display:flex; gap:5px; flex-wrap:wrap; padding:0 12px 10px;}
+.help-hints button{border:1px solid var(--line); background:#fff; border-radius:999px; padding:4px 10px; font-size:11.5px; color:var(--muted);}
+@media(prefers-reduced-motion:reduce){ *{transition:none !important; animation:none !important;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1 id="brandName">FairLeave<span class="dot">.</span></h1>
+      <p>Self-managed holidays · first come, first served · true-exchange swaps</p>
+    </div>
+    <div class="who-bar" id="whoBar"></div>
+  </header>
+  <main id="app"></main>
+</div>
+<div id="toast" role="status"></div>
+
+<button class="help-fab" id="helpFab" aria-label="Open help assistant" title="Help">?</button>
+<div class="help-panel" id="helpPanel" style="display:none;" role="dialog" aria-label="Help assistant">
+  <div class="help-head"><span>FairLeave assistant</span><button id="helpClose" aria-label="Close">×</button></div>
+  <div class="help-msgs" id="helpMsgs"></div>
+  <div class="help-hints" id="helpHints"></div>
+  <div class="help-in">
+    <input id="helpInput" placeholder="Ask anything about the system…" autocomplete="off">
+    <button class="btn primary small" id="helpSend">Send</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   FairLeave v2 — front-end for the Apps Script + Sheet backend
+   All rules run server-side (race-safe). This client renders
+   state, sends actions, and re-renders from server responses.
+   ========================================================= */
+
+const S = {
+  apiUrl:'', role:null, token:null, pin:null, me:null, data:null,
+  ui:{ month: new Date().toISOString().slice(0,7)+'-01', mgmtTab:'overview', calTeam:null,
+       conflict:null, swapModal:null, busy:false }
+};
+
+/* ---------- safe local settings (works even where localStorage is blocked) ---------- */
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return (store._m||{})[k]||null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ (store._m=store._m||{})[k]=v; } },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){ if(store._m) delete store._m[k]; } }
+};
+
+/* ---------- API ---------- */
+async function api(action, payload){
+  const body = Object.assign({action}, payload||{});
+  if (S.token) body.token = S.token;
+  if (S.pin) body.pin = S.pin;
+  const res = await fetch(S.apiUrl, {method:'POST', body: JSON.stringify(body)});
+  if (!res.ok) throw new Error('Server error ('+res.status+')');
+  const out = await res.json();
+  if (out.state) S.data = out.state;
+  return out;
+}
+async function call(action, payload, okMsg){
+  if (S.ui.busy) return null;
+  S.ui.busy = true; render();
+  try{
+    const out = await api(action, payload);
+    if (out.ok === false){ toast(out.error || 'Something went wrong.', true); return out; }
+    if (okMsg) toast(okMsg);
+    return out;
+  }catch(err){ toast('Connection problem: '+err.message, true); return null; }
+  finally{ S.ui.busy = false; render(); }
+}
+
+/* ---------- date utils ---------- */
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function pISO(s){ const [y,m,d]=s.split('-').map(Number); return new Date(Date.UTC(y,m-1,d)); }
+function toISO(d){ return d.toISOString().slice(0,10); }
+function addDays(s,n){ const d=pISO(s); d.setUTCDate(d.getUTCDate()+n); return toISO(d); }
+function isNonWorking(s){ const wd=pISO(s).getUTCDay(); return S.data && S.data.workSaturday ? wd===0 : (wd===0||wd===6); }
+function workdaysIn(s,e){ let n=0,c=s; while(c<=e){ if(!isNonWorking(c)) n++; c=addDays(c,1);} return n; }
+function fmt(s){ return pISO(s).toLocaleDateString('en-IE',{day:'numeric',month:'short',timeZone:'UTC'}); }
+function monthTitle(iso){ return pISO(iso).toLocaleDateString('en-IE',{month:'long',year:'numeric',timeZone:'UTC'}); }
+
+/* ---------- lookups ---------- */
+const emp = id => S.data.employees.find(e=>e.id===id);
+const team = id => S.data.teams.find(t=>t.id===id);
+const initials = n => n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const approved = () => S.data.bookings.filter(b=>b.status==='approved');
+function bookingsOnDay(teamId, day){
+  return approved().filter(b=>{ const e=emp(b.employeeId); return e && e.teamId===teamId && b.start<=day && day<=b.end; });
+}
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg, isErr){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = isErr ? 'var(--red)' : 'var(--ink)';
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 4500);
+}
+
+/* ---------- login screen ---------- */
+function loginView(){
+  const hasUrl = !!S.apiUrl;
+  return `<div class="card login-box">
+    <h2>Sign in</h2>
+    <p class="sub">Employees: open your personal link, or paste your access code. Management: enter the PIN.</p>
+    <div class="frow"><label style="flex:1;">System address (API URL)
+      <input id="apiUrl" placeholder="https://script.google.com/macros/s/…/exec" value="${S.apiUrl||''}">
+    </label></div>
+    <hr class="hr">
+    <div class="frow">
+      <label style="flex:1;">Employee access code <input id="loginToken" placeholder="from your personal link"></label>
+      <button class="btn primary" data-act="login-emp">${S.ui.busy?'<span class="spin"></span>':''}Sign in</button>
+    </div>
+    <div class="frow">
+      <label style="flex:1;">Management PIN <input id="loginPin" type="password" placeholder="••••"></label>
+      <button class="btn ghost" data-act="login-mgmt">Management sign in</button>
+    </div>
+    ${!hasUrl ? `<div class="notice warn">First time? Paste the web app URL you got when deploying the Apps Script backend.</div>`:''}
+  </div>`;
+}
+
+/* ---------- calendar ---------- */
+function calendarHTML(teamId, highlightEmpId){
+  const first = S.ui.month;
+  const d0 = pISO(first);
+  const year = d0.getUTCFullYear(), mon = d0.getUTCMonth();
+  const daysInMonth = new Date(Date.UTC(year, mon+1, 0)).getUTCDate();
+  const startDow = (d0.getUTCDay()+6)%7;
+  const t = team(teamId);
+  const today = todayISO();
+  let cells = '';
+  for(let i=0;i<startDow;i++) cells += `<div class="cal-cell pad"></div>`;
+  for(let day=1; day<=daysInMonth; day++){
+    const iso = `${year}-${String(mon+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const rest = isNonWorking(iso);
+    const bo = S.data.blackouts.find(b=>b.start<=iso && iso<=b.end);
+    const off = rest ? [] : bookingsOnDay(teamId, iso);
+    const cls = ['cal-cell', rest?'rest':'', bo?'blackout':'', iso===today?'today':''].join(' ');
+    let pips = '';
+    if(!rest && !bo){
+      for(let p=0;p<t.max;p++){
+        const c = p < off.length ? (off.length>t.max?'over':'full') : '';
+        pips += `<span class="pip ${c}"></span>`;
+      }
+    }
+    const who = off.map(b=>`<span class="chip ${b.employeeId===highlightEmpId?'me':''}" title="${emp(b.employeeId).name}">${initials(emp(b.employeeId).name)}</span>`).join('');
+    cells += `<div class="${cls}" title="${bo?bo.reason:''}"><span class="d">${day}</span><div class="pips">${pips}</div><div class="who">${who}</div></div>`;
+  }
+  const dows = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  return `
+  <div class="cal-head">
+    <div class="cal-title">${monthTitle(first)} · ${t.name} <span class="sub">(max ${t.max} off/day)</span></div>
+    <div class="cal-nav">
+      <button class="btn ghost small" data-act="cal-prev">‹ Prev</button>
+      <button class="btn ghost small" data-act="cal-today">Today</button>
+      <button class="btn ghost small" data-act="cal-next">Next ›</button>
+    </div>
+  </div>
+  <div class="cal-grid">${dows}${cells}</div>
+  <div class="legend">
+    <span><span class="pip full"></span> slot taken</span>
+    <span><span class="pip"></span> slot free</span>
+    <span><span class="swatch" style="background:repeating-linear-gradient(-45deg,#EFE2DE 0 4px,#F8EFEC 4px 8px);border:1px solid #E3C8C0;"></span> blackout</span>
+    <span><span class="swatch" style="background:#F4F7F5;border:1px solid var(--line);"></span> non-working day</span>
+  </div>`;
+}
+
+/* ---------- employee view ---------- */
+function employeeView(){
+  const me = emp(S.me.id) || S.me;
+  const t = team(me.teamId);
+  const left = me.entitlement - me.used;
+  const pct = Math.max(0, Math.min(1, me.entitlement ? left/me.entitlement : 0));
+  const C = 2*Math.PI*30;
+  const myBookings = S.data.bookings.filter(b=>b.employeeId===me.id).sort((a,b)=>a.start<b.start?-1:1);
+  const inbox = S.data.swaps.filter(w=>{
+    const tb = S.data.bookings.find(b=>b.id===w.targetBookingId);
+    return tb && tb.employeeId===me.id && w.status==='pending';
+  });
+  const outbox = S.data.swaps.filter(w=>w.requesterId===me.id).sort((a,b)=>b.createdAt-a.createdAt).slice(0,6);
+
+  return `
+  <div class="grid two">
+    <section class="card">${calendarHTML(t.id, me.id)}</section>
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <section class="card">
+        <div class="me-strip">
+          <div class="ring" aria-label="${left} of ${me.entitlement} days left">
+            <svg width="78" height="78" viewBox="0 0 78 78">
+              <circle cx="39" cy="39" r="30" fill="none" stroke="var(--line)" stroke-width="9"/>
+              <circle cx="39" cy="39" r="30" fill="none" stroke="var(--pine)" stroke-width="9"
+                stroke-dasharray="${(C*pct).toFixed(1)} ${C.toFixed(1)}" stroke-linecap="round"/>
+            </svg>
+            <div class="num"><b>${left}</b><small>days left</small></div>
+          </div>
+          <div>
+            <h2 style="margin-bottom:2px;">${me.name}</h2>
+            <div class="sub">${t.name} · ${me.used} of ${me.entitlement} days used · ${S.data.workSaturday?'Sundays':'weekends'} don't count</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Request holidays</h2>
+        <p class="sub mb">Approved instantly if your team has space and there's no blackout.</p>
+        <div class="frow">
+          <label>From <input type="date" id="reqStart" min="${todayISO()}"></label>
+          <label>To <input type="date" id="reqEnd" min="${todayISO()}"></label>
+          <button class="btn primary" data-act="request" ${S.ui.busy?'disabled':''}>${S.ui.busy?'<span class="spin"></span>':''}Request</button>
+        </div>
+        ${S.ui.conflict ? conflictPanel(S.ui.conflict) : ''}
+      </section>
+
+      ${inbox.length ? `<section class="card">
+        <h2>Swap requests for you <span class="tag pending">${inbox.length}</span></h2>
+        ${inbox.map(w=>{
+          const tb = S.data.bookings.find(b=>b.id===w.targetBookingId);
+          return `<div class="conflict-item">
+            <div><b>${emp(w.requesterId).name}</b> wants to exchange: they take your <b>${fmt(tb.start)} – ${fmt(tb.end)}</b>, you pick new dates.</div>
+            <div style="display:flex; gap:6px; flex:none;">
+              <button class="btn primary small" data-act="swap-open" data-id="${w.id}">Exchange…</button>
+              <button class="btn ghost small" data-act="swap-decline" data-id="${w.id}">Decline</button>
+            </div></div>`;
+        }).join('')}
+      </section>` : ''}
+
+      <section class="card">
+        <h2>My bookings</h2>
+        ${myBookings.length ? `<table><thead><tr><th>Dates</th><th>Days</th><th>Status</th><th></th></tr></thead><tbody>
+          ${myBookings.map(b=>`<tr>
+            <td>${fmt(b.start)} – ${fmt(b.end)}</td>
+            <td>${workdaysIn(b.start,b.end)}</td>
+            <td><span class="tag ${b.status}">${b.status}</span>${b.note?` <span class="sub">${b.note}</span>`:''}</td>
+            <td>${b.status==='approved' && b.start>=todayISO() ? `<button class="btn danger small" data-act="cancel" data-id="${b.id}">Cancel</button>`:''}</td>
+          </tr>`).join('')}</tbody></table>` : `<div class="empty">No bookings yet — pick your dates above.</div>`}
+      </section>
+
+      ${outbox.length ? `<section class="card">
+        <h2>My swap requests</h2>
+        ${outbox.map(w=>{
+          const tb = S.data.bookings.find(b=>b.id===w.targetBookingId);
+          return `<div class="conflict-item"><div>Asked to exchange for <b>${fmt(w.reqStart)} – ${fmt(w.reqEnd)}</b>${w.note?`<div class="sub">${w.note}</div>`:''}</div><span class="tag ${w.status}">${w.status}</span></div>`;
+        }).join('')}
+      </section>` : ''}
+    </div>
+  </div>
+  ${S.ui.swapModal ? swapModalHTML() : ''}`;
+}
+
+function conflictPanel(pc){
+  return `<div class="notice warn">
+    <b>Those dates are full.</b> ${pc.reason}<br>
+    <span class="sub">Ask whoever holds the dates to exchange — they'll pick new dates for themselves and yours book automatically.</span>
+    ${pc.conflicts.map(c=>`<div class="conflict-item">
+        <div><b>${c.name}</b> holds ${fmt(c.start)} – ${fmt(c.end)}</div>
+        <button class="btn primary small" data-act="ask-swap" data-id="${c.id}">Request exchange</button>
+      </div>`).join('')}
+    <div style="margin-top:8px;"><button class="btn ghost small" data-act="dismiss-conflict">Choose different dates</button></div>
+  </div>`;
+}
+
+function swapModalHTML(){
+  const w = S.data.swaps.find(x=>x.id===S.ui.swapModal);
+  if(!w) return '';
+  const tb = S.data.bookings.find(b=>b.id===w.targetBookingId);
+  return `<div class="modal-bg" data-act="swap-close-bg">
+    <div class="modal">
+      <h2>Exchange holidays</h2>
+      <p class="sub mb">You give up <b>${fmt(tb.start)} – ${fmt(tb.end)}</b> to ${emp(w.requesterId).name}. Pick your replacement dates — both moves are checked and booked together, or nothing changes.</p>
+      <div class="frow">
+        <label>New from <input type="date" id="swapNewStart" min="${todayISO()}"></label>
+        <label>New to <input type="date" id="swapNewEnd" min="${todayISO()}"></label>
+      </div>
+      <div class="frow" style="justify-content:flex-end;">
+        <button class="btn ghost small" data-act="swap-close">Back</button>
+        <button class="btn ghost small" data-act="swap-release" data-id="${w.id}">Release without rebooking</button>
+        <button class="btn primary small" data-act="swap-exchange" data-id="${w.id}" ${S.ui.busy?'disabled':''}>Confirm exchange</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- management view ---------- */
+function mgmtView(){
+  const tab = S.ui.mgmtTab;
+  const pending = S.data.swaps.filter(w=>w.status==='pending').length;
+  const tabs = [
+    ['overview','Overview'], ['teams','Teams'], ['people','People'],
+    ['blackouts','Blackouts'], ['bookings','All bookings'],
+    ['swaps', `Swaps${pending?`<span class="badge">${pending}</span>`:''}`]
+  ].map(([k,l])=>`<button class="${tab===k?'on':''}" data-act="mtab" data-id="${k}">${l}</button>`).join('');
+
+  let body = '';
+  if(tab==='overview'){
+    const ct = S.ui.calTeam || (S.data.teams[0]||{}).id;
+    body = S.data.teams.length ? `<section class="card">
+      <div class="frow" style="margin-bottom:4px;">
+        <label>Team calendar
+          <select id="calTeamPick">${S.data.teams.map(t=>`<option value="${t.id}" ${ct===t.id?'selected':''}>${t.name}</option>`).join('')}</select>
+        </label>
+      </div>
+      ${calendarHTML(ct, null)}
+    </section>` : `<section class="card empty">Add a team to get started.</section>`;
+  }
+  if(tab==='teams'){
+    body = `<section class="card">
+      <h2>Teams & limits</h2>
+      <p class="sub mb">The limit is the maximum number of team members who can be on holiday on the same working day.</p>
+      <table><thead><tr><th>Team</th><th>Members</th><th>Max off at once</th><th></th></tr></thead><tbody>
+      ${S.data.teams.map(t=>`<tr>
+        <td><input value="${t.name}" data-field="tname" data-id="${t.id}" style="width:150px"></td>
+        <td>${S.data.employees.filter(e=>e.teamId===t.id).length}</td>
+        <td><input type="number" min="1" value="${t.max}" style="width:70px" data-field="tmax" data-id="${t.id}"></td>
+        <td><button class="btn ghost small" data-act="team-save" data-id="${t.id}">Save</button>
+            <button class="btn danger small" data-act="team-del" data-id="${t.id}">Delete</button></td>
+      </tr>`).join('')}</tbody></table>
+      <div class="frow mt">
+        <label>New team <input id="newTeamName" placeholder="e.g. Bakery"></label>
+        <label>Max off <input id="newTeamMax" type="number" min="1" value="1" style="width:80px"></label>
+        <button class="btn primary" data-act="team-add">Add team</button>
+      </div>
+    </section>`;
+  }
+  if(tab==='people'){
+    const base = location.href.split('#')[0];
+    body = `<section class="card">
+      <h2>People</h2>
+      <div class="frow" style="margin-bottom:6px;">
+        <button class="btn ghost small" data-act="sync-sched" ${S.ui.busy?'disabled':''}>⟳ Sync people & departments from Shift Scheduler</button>
+        <button class="btn ghost small" data-act="import-leave" ${S.ui.busy?'disabled':''}>Import existing approved leave</button>
+      </div>
+      <p class="sub mb">The Shift Scheduler owns people and departments — sync pulls them in (departments become teams). Approved holidays are pushed back to its LeaveRequests automatically, so the auto-scheduler never rosters someone on leave.</p>
+      <div style="overflow-x:auto;"><table><thead><tr><th>Name</th><th>Team</th><th>Days</th><th>Email</th><th>Used</th><th>Sign-in link</th><th></th></tr></thead><tbody>
+      ${S.data.employees.map(e=>`<tr>
+        <td><input value="${e.name}" data-field="ename" data-id="${e.id}" style="width:130px"></td>
+        <td><select data-field="eteam" data-id="${e.id}">${S.data.teams.map(t=>`<option value="${t.id}" ${e.teamId===t.id?'selected':''}>${t.name}</option>`).join('')}</select></td>
+        <td><input type="number" min="0" value="${e.entitlement}" style="width:60px" data-field="eent" data-id="${e.id}"></td>
+        <td><input value="${e.email||''}" placeholder="for swap emails" data-field="eemail" data-id="${e.id}" style="width:150px"></td>
+        <td>${e.used}</td>
+        <td><span class="linkbox">${base}#t=${e.token}</span>
+            <button class="btn ghost small" data-act="copy-link" data-id="${e.token}">Copy</button></td>
+        <td><button class="btn ghost small" data-act="emp-save" data-id="${e.id}">Save</button>
+            <button class="btn ghost small" data-act="emp-retoken" data-id="${e.id}">New link</button>
+            <button class="btn danger small" data-act="emp-del" data-id="${e.id}">Remove</button></td>
+      </tr>`).join('')}</tbody></table></div>
+      <div class="frow mt">
+        <label>Name <input id="newEmpName" placeholder="Full name"></label>
+        <label>Team <select id="newEmpTeam">${S.data.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></label>
+        <label>Entitlement <input id="newEmpEnt" type="number" min="0" value="20" style="width:80px"></label>
+        <label>Email <input id="newEmpEmail" placeholder="optional"></label>
+        <button class="btn primary" data-act="emp-add">Add person</button>
+      </div>
+    </section>`;
+  }
+  if(tab==='blackouts'){
+    body = `<section class="card">
+      <h2>Blackout periods</h2>
+      <p class="sub mb">No holidays can be booked during a blackout — requests are blocked automatically for everyone. Existing bookings are kept; cancel them from All bookings if needed.</p>
+      ${S.data.blackouts.length ? `<table><thead><tr><th>Dates</th><th>Reason</th><th></th></tr></thead><tbody>
+      ${S.data.blackouts.map(b=>`<tr>
+        <td><span class="tag blackout">${fmt(b.start)} – ${fmt(b.end)}</span></td>
+        <td>${b.reason||''}</td>
+        <td><button class="btn danger small" data-act="bo-del" data-id="${b.id}">Remove</button></td>
+      </tr>`).join('')}</tbody></table>` : `<div class="empty">No blackout periods set.</div>`}
+      <div class="frow mt">
+        <label>From <input type="date" id="boStart"></label>
+        <label>To <input type="date" id="boEnd"></label>
+        <label>Reason <input id="boReason" placeholder="e.g. Stocktake week"></label>
+        <button class="btn primary" data-act="bo-add">Add blackout</button>
+      </div>
+    </section>`;
+  }
+  if(tab==='bookings'){
+    const rows = S.data.bookings.slice().sort((a,b)=>a.start<b.start?-1:1);
+    body = `<section class="card">
+      <h2>All bookings</h2>
+      ${rows.length ? `<table><thead><tr><th>Who</th><th>Team</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr></thead><tbody>
+      ${rows.map(b=>{ const e=emp(b.employeeId); if(!e) return '';
+        return `<tr><td><b>${e.name}</b></td><td>${(team(e.teamId)||{}).name||''}</td>
+        <td>${fmt(b.start)} – ${fmt(b.end)}</td><td>${workdaysIn(b.start,b.end)}</td>
+        <td><span class="tag ${b.status}">${b.status}</span>${b.note?` <span class="sub">${b.note}</span>`:''}</td>
+        <td>${b.status==='approved'?`<button class="btn danger small" data-act="cancel" data-id="${b.id}">Cancel</button>`:''}</td></tr>`;
+      }).join('')}</tbody></table>` : `<div class="empty">No bookings yet.</div>`}
+    </section>`;
+  }
+  if(tab==='swaps'){
+    const rows = S.data.swaps.slice().sort((a,b)=>Number(b.createdAt)-Number(a.createdAt));
+    body = `<section class="card">
+      <h2>Swap requests</h2>
+      <p class="sub mb">Swaps are resolved between employees — this is read-only oversight. The full audit trail is in the Sheet's Audit tab.</p>
+      ${rows.length ? `<table><thead><tr><th>Requester</th><th>Wants</th><th>Held by</th><th>Status</th></tr></thead><tbody>
+      ${rows.map(w=>{ const tb=S.data.bookings.find(b=>b.id===w.targetBookingId);
+        const holder = tb && emp(tb.employeeId) ? emp(tb.employeeId).name+' ('+fmt(tb.start)+' – '+fmt(tb.end)+')' : '—';
+        return `<tr><td><b>${emp(w.requesterId)?emp(w.requesterId).name:'—'}</b></td>
+        <td>${fmt(w.reqStart)} – ${fmt(w.reqEnd)}</td><td>${holder}</td>
+        <td><span class="tag ${w.status}">${w.status}</span>${w.note?` <span class="sub">${w.note}</span>`:''}</td></tr>`;
+      }).join('')}</tbody></table>` : `<div class="empty">No swap requests yet.</div>`}
+    </section>`;
+  }
+  return `<div class="tabs">${tabs}</div>${body}`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const who = document.getElementById('whoBar');
+  if (S.role === 'employee') who.innerHTML = `Signed in as <b>${S.me.name}</b> <button class="btn ghost small" data-act="logout">Sign out</button>`;
+  else if (S.role === 'mgmt') who.innerHTML = `<b>Management</b> <button class="btn ghost small" data-act="refresh">Refresh</button> <button class="btn ghost small" data-act="logout">Sign out</button>`;
+  else who.innerHTML = '';
+  if (S.data && S.data.company) document.getElementById('brandName').innerHTML = `${S.data.company}<span class="dot">.</span>`;
+  const app = document.getElementById('app');
+  if (!S.role) app.innerHTML = loginView();
+  else if (S.role === 'employee') app.innerHTML = employeeView();
+  else app.innerHTML = mgmtView();
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async (ev)=>{
+  const btn = ev.target.closest('[data-act]');
+  if(!btn) return;
+  const act = btn.dataset.act, id = btn.dataset.id;
+  const val = sel => { const el=document.getElementById(sel); return el?el.value:''; };
+  const fieldVal = (f,i) => { const el=document.querySelector(`[data-field="${f}"][data-id="${i}"]`); return el?el.value:''; };
+
+  if(act==='login-emp' || act==='login-mgmt'){
+    S.apiUrl = val('apiUrl').trim();
+    if(!S.apiUrl){ toast('Paste the system address (API URL) first.', true); return; }
+    store.set('fl-api', S.apiUrl);
+    S.token = act==='login-emp' ? val('loginToken').trim() : null;
+    S.pin   = act==='login-mgmt' ? val('loginPin').trim() : null;
+    const out = await call('login');
+    if(out && out.ok){
+      S.role = out.role; S.me = out.me || null;
+      if (S.token) store.set('fl-token', S.token);
+      render();
+    }
+    return;
+  }
+  if(act==='logout'){
+    S.role=null; S.token=null; S.pin=null; S.me=null; S.data=null; S.ui.conflict=null; S.ui.swapModal=null;
+    store.del('fl-token'); history.replaceState(null,'',location.pathname+location.search); render(); return;
+  }
+  if(act==='refresh'){ await call('state'); return; }
+
+  if(act==='cal-prev'||act==='cal-next'){
+    const d=pISO(S.ui.month); d.setUTCMonth(d.getUTCMonth()+(act==='cal-next'?1:-1),1); S.ui.month=toISO(d); render(); return;
+  }
+  if(act==='cal-today'){ S.ui.month=todayISO().slice(0,7)+'-01'; render(); return; }
+  if(act==='mtab'){ S.ui.mgmtTab=id; render(); return; }
+
+  if(act==='request'){
+    const s=val('reqStart'), e=val('reqEnd');
+    const out = await call('requestHoliday',{start:s,end:e});
+    if(out && out.ok){
+      if(out.approved){ S.ui.conflict=null; toast(`Approved automatically — ${fmt(s)} to ${fmt(e)} (${out.days} days).`); }
+      else S.ui.conflict = {s,e,reason:out.reason,conflicts:out.conflicts};
+      render();
+    }
+    return;
+  }
+  if(act==='ask-swap'){
+    const pc=S.ui.conflict; if(!pc) return;
+    const out = await call('requestSwap',{targetBookingId:id, reqStart:pc.s, reqEnd:pc.e},'Exchange request sent.');
+    if(out && out.ok){ S.ui.conflict=null; render(); }
+    return;
+  }
+  if(act==='dismiss-conflict'){ S.ui.conflict=null; render(); return; }
+  if(act==='swap-open'){ S.ui.swapModal=id; render(); return; }
+  if(act==='swap-close' || (act==='swap-close-bg' && ev.target===btn)){ S.ui.swapModal=null; render(); return; }
+  if(act==='swap-decline'){ await call('respondSwap',{swapId:id,accept:false},'Swap declined.'); S.ui.swapModal=null; return; }
+  if(act==='swap-release'){
+    const out = await call('respondSwap',{swapId:id,accept:true,releaseOnly:true},'Released — their holidays are booked.');
+    if(out && out.ok) S.ui.swapModal=null; render(); return;
+  }
+  if(act==='swap-exchange'){
+    const ns=val('swapNewStart'), ne=val('swapNewEnd');
+    const out = await call('respondSwap',{swapId:id,accept:true,newStart:ns,newEnd:ne},'Exchange complete — both bookings updated.');
+    if(out && out.ok) S.ui.swapModal=null; render(); return;
+  }
+  if(act==='cancel'){ await call('cancelBooking',{bookingId:id},'Booking cancelled — those dates are open again.'); return; }
+
+  /* management */
+  if(act==='team-add'){ const n=val('newTeamName').trim(); if(!n){toast('Give the team a name.',true);return;}
+    await call('addTeam',{name:n,max:parseInt(val('newTeamMax'))||1},'Team added.'); return; }
+  if(act==='team-save'){ await call('updateTeam',{id, name:fieldVal('tname',id), max:parseInt(fieldVal('tmax',id))||1},'Team saved.'); return; }
+  if(act==='team-del'){ await call('deleteTeam',{id},'Team deleted.'); return; }
+  if(act==='emp-add'){ const n=val('newEmpName').trim(); if(!n){toast('Enter a name.',true);return;}
+    await call('addEmployee',{name:n,teamId:val('newEmpTeam'),entitlement:parseInt(val('newEmpEnt'))||0,email:val('newEmpEmail').trim()},'Person added — copy their sign-in link.'); return; }
+  if(act==='emp-save'){ await call('updateEmployee',{id, name:fieldVal('ename',id), teamId:fieldVal('eteam',id),
+    entitlement:parseInt(fieldVal('eent',id))||0, email:fieldVal('eemail',id).trim()},'Saved.'); return; }
+  if(act==='emp-retoken'){ await call('regenToken',{id},'New sign-in link generated — the old one no longer works.'); return; }
+  if(act==='emp-del'){ await call('deleteEmployee',{id},'Removed — their future bookings were cancelled.'); return; }
+  if(act==='bo-add'){ await call('addBlackout',{start:val('boStart'),end:val('boEnd'),reason:val('boReason').trim()},'Blackout added.'); return; }
+  if(act==='bo-del'){ await call('deleteBlackout',{id},'Blackout removed.'); return; }
+  if(act==='sync-sched'){
+    const out = await call('syncScheduler');
+    if(out && out.ok) toast(out.summary || 'Sync complete.');
+    return;
+  }
+  if(act==='import-leave'){
+    const out = await call('importLeave');
+    if(out && out.ok) toast(out.summary || 'Import complete.');
+    return;
+  }
+  if(act==='copy-link'){
+    const link = location.href.split('#')[0]+'#t='+id;
+    try{ await navigator.clipboard.writeText(link); toast('Sign-in link copied.'); }
+    catch(e){ prompt('Copy this link:', link); }
+    return;
+  }
+});
+
+document.addEventListener('change', (ev)=>{
+  if(ev.target.id==='calTeamPick'){ S.ui.calTeam=ev.target.value; render(); }
+});
+
+/* =========================================================
+   Help chat bot — Claude via Cloudflare Worker proxy.
+   Role-aware: setup guide (signed out), employee help,
+   management help. Static fallback if the Worker is down.
+   ========================================================= */
+const HELP_PROXY_URL = 'https://quantumbuild-ai-proxy.aged-wave-0b52.workers.dev/anthropic';
+const HELP_MODEL = 'claude-haiku-4-5-20251001';
+const HELP_MAX_TURNS = 12;
+
+const KB_RULES = `RULES ENGINE (how FairLeave decides):
+1. Holidays are self-managed: no manager approval step. First come, first served.
+2. A request is APPROVED INSTANTLY if: no blackout overlaps it, the employee has enough entitlement days left, and on every working day of the range the team is under its "max off at once" limit.
+3. Blackout periods are set by management and are company-wide: nobody can book holidays inside them.
+4. Working week is Monday–Saturday by default (Sunday is the only non-working day). Non-working days don't use entitlement or a team slot. Public holidays are handled by management adding a blackout.
+5. If requested dates are FULL, the app shows who holds them and offers a swap ("exchange") request.
+6. Swaps are TRUE EXCHANGES: the person holding the dates accepts by picking their own replacement dates. Both moves are validated together and booked together, or nothing changes. They can also "release without rebooking", or decline.
+7. Employees can cancel their own future bookings; the freed dates become available to everyone.
+8. Every change is written to an audit log.`;
+
+const KB_EMPLOYEE = `EMPLOYEE HOW-TO:
+- Sign in: open your personal link (ends in #t=...). Keep it private — it's your key. If it leaks, ask management for a new one.
+- Book: pick From/To dates, press Request. Green toast = approved, done. Your "days left" ring updates.
+- Dates full? You'll see who holds them — press "Request exchange". They get notified (email if on file) and choose to exchange, release, or decline. Watch "My swap requests" for the outcome.
+- Someone asked YOU to exchange: "Swap requests for you" appears. Press "Exchange…", pick your new dates (checked instantly), or "Release without rebooking", or Decline.
+- Cancel: "Cancel" next to any future booking in My bookings.
+- Calendar dots: filled dot = slot taken that day, empty = free. Hatched = blackout (no holidays). Grey = non-working day.`;
+
+const KB_MGMT = `MANAGEMENT HOW-TO:
+- Teams tab: create teams and set "max off at once" (the concurrency limit per working day). Save after editing.
+- People tab: add people with entitlement (days/year) and optional email (needed for swap notification emails). Copy each person's private sign-in link and send it to them. "New link" invalidates the old one. Removing a person cancels their future bookings.
+- Blackouts tab: add date ranges where NOBODY can book (Christmas rush, stocktake, public holidays). Existing bookings inside a new blackout are kept — cancel them from All bookings if needed.
+- All bookings: oversight of everything; management can cancel any approved booking.
+- Swaps tab: read-only oversight of exchanges. Full audit trail lives in the Google Sheet's Audit tab.
+- Config (in the Google Sheet, not the app): MGMT_PIN (change from 1234!), COMPANY_NAME, WORK_SATURDAY (TRUE = Mon–Sat working week, FALSE = Mon–Fri), SCHEDULER_SHEET_ID (the Shift Scheduler spreadsheet to integrate with).
+- Shift Scheduler integration: the scheduler owns people & departments — press "Sync people & departments" on the People tab to pull them in (departments become teams; check new teams' max-off limits, they default to 1). Every approved/exchanged/cancelled holiday is pushed automatically into the scheduler's LeaveRequests tab as Approved, tagged FairLeave:<id>, so the auto-scheduler never rosters someone on leave. "Import existing approved leave" is a one-time pull of leave already in the scheduler. Run diagnoseScheduler() in the Apps Script editor to verify the connection.`;
+
+const KB_SETUP = `DEPLOYMENT GUIDE (one-time, ~10 min):
+1. Create a Google Sheet (e.g. "FairLeave — <Client>").
+2. Extensions → Apps Script → delete the stub → paste Code.gs → save.
+3. Run setup() from the editor and authorise. Optionally run seedDemo() for sample data.
+4. In the Sheet's Config tab: change MGMT_PIN from 1234, set COMPANY_NAME, set WORK_SATURDAY (TRUE = Mon–Sat).
+5. Deploy → New deployment → Web app → Execute as: Me → Who has access: Anyone → Deploy.
+6. Copy the /exec URL.
+7. Host holiday-manager HTML anywhere (GitHub Pages works), open it, paste the /exec URL, sign in with the management PIN.
+8. Add teams & people, then send each person their private sign-in link from the People tab.
+Code changes later: Deploy → Manage deployments → pencil → Version: New version → Deploy (URL stays the same).
+Notes: tokens are 16-char random; PIN lives only in the Sheet; MailApp email quota ~100/day consumer, 1,500/day Workspace.`;
+
+let helpHistory = [];
+let helpBusy = false;
+
+function helpContext(){
+  if (S.role === 'employee'){
+    const me = emp(S.me.id) || S.me;
+    const t = team(me.teamId) || {};
+    return {label:'employee',
+      system: `You are the built-in help assistant inside FairLeave, a self-managed holiday system. Answer briefly (2-5 sentences), plainly, and only about using this system. Never invent features. If asked about other employees' bookings or personal data, direct them to the calendar view. If something needs management (blackouts, entitlement changes, new sign-in link), say so.\n\n${KB_RULES}\n\n${KB_EMPLOYEE}\n\nTHIS USER: ${me.name}, team "${t.name}" (max ${t.max} off at once), ${me.entitlement - me.used} of ${me.entitlement} days left. Today is ${todayISO()}.`,
+      hints:['How do I book holidays?','My dates are full — what now?','How do exchanges work?','How many days have I left?']};
+  }
+  if (S.role === 'mgmt'){
+    return {label:'management',
+      system: `You are the built-in help assistant inside FairLeave, a self-managed holiday system, talking to a manager/administrator. Answer briefly and practically, only about this system. Never invent features.\n\n${KB_RULES}\n\n${KB_MGMT}\n\n${KB_SETUP}\n\nToday is ${todayISO()}.`,
+      hints:['How do team limits work?','Block Christmas week for everyone','Someone lost their sign-in link','How do I redeploy after changes?']};
+  }
+  return {label:'setup',
+    system: `You are the built-in help assistant for FairLeave, a self-managed holiday system (Google Apps Script + Sheet backend, single HTML front-end). The user is not signed in — they are likely setting the system up or trying to sign in. Answer briefly and practically. Never invent features.\n\n${KB_SETUP}\n\n${KB_RULES}\n\nSign-in: employees use their personal link or paste their access code; management uses the PIN from the Sheet's Config tab. Both need the web app /exec URL in "System address".`,
+    hints:['Walk me through setup','Where do I get the API URL?','I can\'t sign in','What does this system do?']};
+}
+
+function helpEsc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function helpRender(){
+  const box = document.getElementById('helpMsgs');
+  box.innerHTML = helpHistory.map(m=>`<div class="hmsg ${m.role==='user'?'user':'bot'}">${helpEsc(m.content)}</div>`).join('')
+    + (helpBusy ? `<div class="hmsg think">thinking…</div>` : '');
+  box.scrollTop = box.scrollHeight;
+  const ctx = helpContext();
+  document.getElementById('helpHints').innerHTML = helpHistory.length ? '' :
+    ctx.hints.map(h=>`<button data-hint="${helpEsc(h)}">${helpEsc(h)}</button>`).join('');
+}
+
+function helpFallback(){
+  const ctx = helpContext();
+  const text = ctx.label==='setup' ? KB_SETUP : ctx.label==='mgmt' || ctx.label==='management' ? (KB_MGMT+'\n\n'+KB_RULES) : (KB_EMPLOYEE+'\n\n'+KB_RULES);
+  return 'I can\'t reach the assistant service right now, so here\'s the built-in guide:\n\n'+text;
+}
+
+async function helpAsk(q){
+  if (helpBusy || !q.trim()) return;
+  helpHistory.push({role:'user', content:q.trim()});
+  if (helpHistory.length > HELP_MAX_TURNS) helpHistory = helpHistory.slice(-HELP_MAX_TURNS);
+  helpBusy = true; helpRender();
+  try{
+    const res = await fetch(HELP_PROXY_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: HELP_MODEL,
+        max_tokens: 500,
+        system: helpContext().system,
+        messages: helpHistory.map(m=>({role:m.role, content:m.content}))
+      })
+    });
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    const text = (data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();
+    if (!text) throw new Error('Empty response');
+    helpHistory.push({role:'assistant', content:text});
+  }catch(err){
+    helpHistory.push({role:'assistant', content: helpFallback()});
+  }finally{
+    helpBusy = false; helpRender();
+  }
+}
+
+document.getElementById('helpFab').addEventListener('click', ()=>{
+  const p = document.getElementById('helpPanel');
+  const open = p.style.display !== 'none';
+  p.style.display = open ? 'none' : 'flex';
+  if (!open){
+    if (!helpHistory.length){
+      const ctx = helpContext();
+      const greet = ctx.label==='setup'
+        ? 'Hi! I can walk you through setting up FairLeave, or help you sign in. What do you need?'
+        : ctx.label==='employee'
+          ? `Hi ${S.me.name.split(' ')[0]}! Ask me anything — booking holidays, exchanges, your days left.`
+          : 'Hi! Ask me anything about running FairLeave — teams, limits, blackouts, sign-in links, deployment.';
+      helpHistory.push({role:'assistant', content:greet});
+    }
+    helpRender();
+    document.getElementById('helpInput').focus();
+  }
+});
+document.getElementById('helpClose').addEventListener('click', ()=>{ document.getElementById('helpPanel').style.display='none'; });
+document.getElementById('helpSend').addEventListener('click', ()=>{
+  const el = document.getElementById('helpInput'); const q = el.value; el.value=''; helpAsk(q);
+});
+document.getElementById('helpInput').addEventListener('keydown', (e)=>{
+  if (e.key==='Enter'){ const el=e.target; const q=el.value; el.value=''; helpAsk(q); }
+});
+document.getElementById('helpHints').addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-hint]'); if (b) helpAsk(b.dataset.hint);
+});
+
+/* ---------- boot ---------- */
+(async ()=>{
+  S.apiUrl = store.get('fl-api') || '';
+  const m = location.hash.match(/#t=([A-Za-z0-9]+)/);
+  const savedToken = m ? m[1] : store.get('fl-token');
+  if (S.apiUrl && savedToken){
+    S.token = savedToken;
+    const out = await call('login');
+    if (out && out.ok){ S.role=out.role; S.me=out.me; store.set('fl-token', S.token); }
+    else { S.token=null; }
+  }
+  render();
+})();
+</script>
+</body>
+</html>
