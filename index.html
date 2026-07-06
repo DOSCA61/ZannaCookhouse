@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Zanna Cookhouse — Control Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#22302b;          /* deep bottle green */
+    --plaster:#f0ece3;      /* warm plaster wall */
+    --glaze-a:#3e6b5a;      /* glazed green tile */
+    --glaze-b:#b4552d;      /* paprika tile */
+    --grout:#d8d2c4;
+    --white:#fbfaf6;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--plaster);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;
+    padding:48px 20px 64px;
+    background-image:
+      linear-gradient(var(--grout) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grout) 1px, transparent 1px);
+    background-size:72px 72px;
+  }
+  header{text-align:center;margin-bottom:44px}
+  .eyebrow{
+    font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--glaze-b);font-weight:600;margin-bottom:10px;
+  }
+  h1{
+    font-family:'Fraunces',serif;font-weight:700;
+    font-size:clamp(30px,5vw,44px);line-height:1.1;
+  }
+  header p{margin-top:10px;font-size:15px;color:#5b665f}
+
+  .tiles{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,320px));
+    gap:28px;justify-content:center;width:100%;max-width:1060px;
+  }
+  .tile{
+    display:block;text-decoration:none;color:var(--white);
+    border-radius:14px;padding:30px 26px 26px;
+    min-height:190px;position:relative;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.25), 0 6px 0 rgba(34,48,43,.18);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .tile:hover,.tile:focus-visible{
+    transform:translateY(-3px);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.25), 0 9px 0 rgba(34,48,43,.22);
+  }
+  .tile:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+  .tile.leave{background:linear-gradient(160deg,#477764 0%,var(--glaze-a) 60%)}
+  .tile.shift{background:linear-gradient(160deg,#c4642f 0%,var(--glaze-b) 60%)}
+  .tile.lms{background:linear-gradient(160deg,#4e6376 0%,#3a4e60 60%)}
+  .tile.clock{background:linear-gradient(160deg,#6b5a42 0%,#54452f 60%)}
+  .tile.clock.emergency{background:linear-gradient(160deg,#8f3030 0%,#6e1f1f 60%)}
+  .tile .icon{font-size:30px;line-height:1;margin-bottom:14px;display:block}
+  .tile h2{font-family:'Fraunces',serif;font-size:24px;font-weight:600;margin-bottom:6px}
+  .tile .desc{font-size:14px;opacity:.9;line-height:1.45}
+  .tile .go{position:absolute;top:22px;right:22px;font-size:18px;opacity:.85}
+
+  /* Unconfigured apps: tile visible but flat and unclickable */
+  .cell.unconfigured .tile{
+    background:#b7b2a5;pointer-events:none;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.2), 0 3px 0 rgba(34,48,43,.12);
+  }
+  .cell.unconfigured .url a{pointer-events:none;border-bottom:none}
+
+  .url{margin-top:10px;text-align:center;font-size:13px}
+  .url a{
+    color:#4a5a52;text-decoration:none;word-break:break-all;
+    border-bottom:1px dotted #9aa79f;
+  }
+  .url a:hover{color:var(--ink)}
+  .cell{display:flex;flex-direction:column}
+
+  footer{margin-top:48px;font-size:12px;color:#8b948d;text-align:center}
+  footer a{color:#8b948d}
+
+  /* Gate states */
+  header,.tiles,footer{visibility:hidden}
+  body.authed header,body.authed .tiles,body.authed footer{visibility:visible}
+  .status{display:none;text-align:center;margin-top:18vh;color:#5b665f;font-size:15px;line-height:1.6}
+  body.checking .status.checking,
+  body.denied  .status.denied,
+  body.offline .status.offline{display:block}
+  .status button{
+    margin-top:14px;font:inherit;font-weight:600;color:var(--white);
+    background:var(--glaze-a);border:0;border-radius:8px;
+    padding:10px 22px;cursor:pointer;
+  }
+  .status button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+  @media (prefers-reduced-motion: reduce){ .tile{transition:none} }
+</style>
+</head>
+<body class="checking">
+
+<!-- ====================================================================
+     No secrets in this file. The access token is verified server-side
+     (Apps Script) and all app URLs come from Script Properties:
+       Access_Token  — the panel access code
+       Panel_Apps    — JSON map of app key → URL
+     To change a URL or rotate the token: edit Script Properties. Done.
+     ==================================================================== -->
+<script>
+  const EXEC_URL = "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec";
+</script>
+
+  <header>
+    <div class="eyebrow">Zanna Cookhouse</div>
+    <h1>Team Control Panel</h1>
+    <p>One place for the tools that run the roster and the leave book.</p>
+  </header>
+
+  <div class="tiles">
+    <div class="cell">
+      <a class="tile leave" data-app="fairleave">
+        <span class="go">→</span>
+        <span class="icon">🏖️</span>
+        <h2>FairLeave</h2>
+        <p class="desc">Book holidays, check your balance, and arrange swaps — self-managed, first come first served.</p>
+      </a>
+      <p class="url"><a data-app="fairleave"></a></p>
+    </div>
+
+    <div class="cell">
+      <a class="tile shift" data-app="scheduler">
+        <span class="go">→</span>
+        <span class="icon">📅</span>
+        <h2>Shift Scheduler</h2>
+        <p class="desc">View the rota, see who's on, and check upcoming shifts across all teams.</p>
+      </a>
+      <p class="url"><a data-app="scheduler"></a></p>
+    </div>
+
+    <div class="cell">
+      <a class="tile lms" data-app="lms">
+        <span class="go">→</span>
+        <span class="icon">🎓</span>
+        <h2>Training LMS</h2>
+        <p class="desc">QuantumBuild learning platform — courses, certifications, and staff training records.</p>
+      </a>
+      <p class="url"><a data-app="lms"></a></p>
+    </div>
+
+    <div class="cell">
+      <a class="tile clock" data-app="clockKiosk">
+        <span class="go">→</span>
+        <span class="icon">⏱️</span>
+        <h2>Zanna Clock — Kiosk</h2>
+        <p class="desc">Clock in and out, start and end breaks. For the tablet kiosks only.</p>
+      </a>
+      <p class="url"><a data-app="clockKiosk"></a></p>
+    </div>
+
+    <div class="cell">
+      <a class="tile clock" data-app="clockCanteen">
+        <span class="go">→</span>
+        <span class="icon">🍽️</span>
+        <h2>Clock — Canteen Display</h2>
+        <p class="desc">Live break timers for the canteen smart screen.</p>
+      </a>
+      <p class="url"><a data-app="clockCanteen"></a></p>
+    </div>
+
+    <div class="cell">
+      <a class="tile clock" data-app="clockOffice">
+        <span class="go">→</span>
+        <span class="icon">🖥️</span>
+        <h2>Clock — Office Display</h2>
+        <p class="desc">Full-detail live break view for the office smart screen.</p>
+      </a>
+      <p class="url"><a data-app="clockOffice"></a></p>
+    </div>
+
+    <div class="cell">
+      <a class="tile clock emergency" data-app="clockEmergency">
+        <span class="go">→</span>
+        <span class="icon">🚨</span>
+        <h2>Emergency Register</h2>
+        <p class="desc">Who is in the building right now, grouped by department. Fire marshal view.</p>
+      </a>
+      <p class="url"><a data-app="clockEmergency"></a></p>
+    </div>
+  </div>
+
+  <p class="status checking">Checking access…</p>
+  <p class="status denied">🔒 This page is for Zanna Cookhouse staff.<br>
+    Ask a manager for the access link or code.<br>
+    <button id="retry">Enter access code</button></p>
+  <p class="status offline">⚠️ Can't reach the server right now.<br>
+    Check your connection and try again.<br>
+    <button id="reload">Retry</button></p>
+
+  <footer>Zanna Cookhouse internal tools · bookmark this page or add it to your home screen · <a href="#" id="logout">log out</a></footer>
+
+<script>
+(function(){
+  const KEY = 'zc_panel_token';
+  const setState = s => document.body.className = s;
+
+  function getToken(promptIfMissing){
+    const params = new URLSearchParams(location.hash.slice(1));
+    let t = params.get('t') || localStorage.getItem(KEY) || '';
+    if (!t && promptIfMissing) {
+      t = prompt('Zanna Cookhouse Control Panel\n\nEnter access code:') || '';
+    }
+    return t.trim();
+  }
+
+  async function verify(token){
+    const res = await fetch(EXEC_URL, {
+      method:'POST',
+      body: JSON.stringify({ action:'getPanelConfig', token: token })
+    });
+    return res.json();
+  }
+
+  function build(apps){
+    document.querySelectorAll('[data-app]').forEach(el => {
+      const key = el.dataset.app;
+      const url = apps[key];
+      const cell = el.closest('.cell');
+      // Treat missing keys and unreplaced placeholders as "not configured"
+      if (!url || !/^https?:\/\//.test(url)) {
+        if (cell) cell.classList.add('unconfigured');
+        if (!el.classList.contains('tile')) el.textContent = 'not configured yet';
+        el.removeAttribute('href');
+        return;
+      }
+      el.href = url;
+      if (!el.classList.contains('tile')) {
+        el.textContent = url.replace(/^https?:\/\//,'');
+      }
+    });
+    setState('authed');
+  }
+
+  async function attempt(promptIfMissing){
+    const token = getToken(promptIfMissing);
+    if (!token) { setState('denied'); return; }
+    setState('checking');
+    try {
+      const data = await verify(token);
+      if (data && data.ok) {
+        localStorage.setItem(KEY, token);
+        // Drop the token from the visible URL once saved
+        if (location.hash) history.replaceState(null,'',location.pathname);
+        build(data.apps || {});
+      } else {
+        localStorage.removeItem(KEY);
+        setState('denied');
+      }
+    } catch (err) {
+      setState('offline');
+    }
+  }
+
+  document.getElementById('retry').addEventListener('click', () => attempt(true));
+  document.getElementById('reload').addEventListener('click', () => attempt(false));
+  document.getElementById('logout').addEventListener('click', e => {
+    e.preventDefault();
+    localStorage.removeItem(KEY);
+    location.reload();
+  });
+
+  attempt(true);
+})();
+</script>
+</body>
+</html>
