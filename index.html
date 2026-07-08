@@ -81,7 +81,7 @@
   .url a:hover{color:var(--ink)}
   .cell{display:flex;flex-direction:column}
 
-  footer{margin-top:48px;font-size:12px;color:#8b948d;text-align:center}
+  footer{margin-top:48px;font-size:12px;color:#8b948d;text-align:center;line-height:1.8}
   footer a{color:#8b948d}
 
   /* Gate states */
@@ -97,6 +97,47 @@
     padding:10px 22px;cursor:pointer;
   }
   .status button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+  /* Set up a device / deploy panel */
+  .setup-trigger{
+    font:inherit;font-weight:600;color:#4a5a52;background:none;border:0;
+    cursor:pointer;border-bottom:1px dotted #9aa79f;padding:0;
+  }
+  .setup-trigger:hover{color:var(--ink)}
+  .setup-trigger:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  .modal{
+    display:none;position:fixed;inset:0;z-index:50;
+    background:rgba(34,48,43,.55);padding:24px;overflow-y:auto;
+  }
+  body.setup-open .modal{display:block}
+  .modal-card{
+    background:var(--white);color:var(--ink);border-radius:14px;
+    max-width:640px;width:100%;margin:6vh auto;padding:24px 26px 30px;
+    box-shadow:0 12px 40px rgba(34,48,43,.35);text-align:left;
+  }
+  .modal-close{
+    float:right;font-size:24px;line-height:1;border:0;background:none;
+    cursor:pointer;color:#8b948d;
+  }
+  .modal-close:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  .modal-card h2{font-family:'Fraunces',serif;font-size:26px;font-weight:700;margin-bottom:4px}
+  .modal-card .sub{font-size:13.5px;color:#5b665f;margin-bottom:12px;line-height:1.5}
+  .setup-item{border-top:1px solid var(--grout);padding:15px 0}
+  .setup-item h3{font-family:'Fraunces',serif;font-size:18px;font-weight:600;margin-bottom:5px}
+  .setup-item .note{font-size:13px;color:#5b665f;line-height:1.5;margin-bottom:10px}
+  .setup-url{display:flex;gap:8px;align-items:stretch}
+  .setup-url code{
+    flex:1;font-size:12px;background:var(--plaster);border:1px solid var(--grout);
+    border-radius:7px;padding:8px 10px;word-break:break-all;
+    font-family:ui-monospace,Menlo,Consolas,monospace;
+  }
+  .setup-url button{
+    font:inherit;font-size:13px;font-weight:600;color:var(--white);
+    background:var(--glaze-a);border:0;border-radius:7px;padding:8px 14px;
+    cursor:pointer;white-space:nowrap;
+  }
+  .setup-url button.copied{background:var(--glaze-b)}
+  .setup-item .na{font-size:13px;color:#8b948d;font-style:italic}
 
   @media (prefers-reduced-motion: reduce){ .tile{transition:none} }
 </style>
@@ -200,12 +241,46 @@
     Check your connection and try again.<br>
     <button id="reload">Retry</button></p>
 
-  <footer>Zanna Cookhouse internal tools · bookmark this page or add it to your home screen · <a href="#" id="logout">log out</a></footer>
+  <footer>Zanna Cookhouse internal tools · bookmark this page or add it to your home screen<br>
+    <button class="setup-trigger" id="setupBtn" type="button">📲 Set up a device / app URLs</button> · <a href="#" id="logout">log out</a></footer>
+
+  <!-- Set up a device / deploy panel. URLs are read from the same server-verified
+       config as the tiles — nothing new is exposed, and it only opens once authed. -->
+  <div class="modal" id="setupModal" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+    <div class="modal-card">
+      <button class="modal-close" id="setupClose" type="button" aria-label="Close">×</button>
+      <h2 id="setupTitle">Set up a device</h2>
+      <p class="sub">Open the app on the device, then add it to the home screen. These URLs are live for your team — keep them internal, don't post them publicly.</p>
+      <div id="setupList"></div>
+    </div>
+  </div>
 
 <script>
 (function(){
   const KEY = 'zc_panel_token';
   const setState = s => document.body.className = s;
+  let panelApps = {};
+
+  // How to install / where a token is needed. Notes only — no secrets here.
+  // Locked rule: clocking actions only from registered devices, so only the
+  // Kiosk (which performs clock-ins) needs device registration. The Canteen,
+  // Office and Emergency views are read-only, so URL alone is enough.
+  const SETUP = [
+    {key:'fairleave', name:'FairLeave',
+      note:'Base app URL. Each staff member gets their own private link (with a personal token) generated inside FairLeave — share it via the in-app QR code. Do not paste personal tokens here.'},
+    {key:'scheduler', name:'Shift Scheduler',
+      note:'Open the URL. No device token needed.'},
+    {key:'lms', name:'Training LMS (QuantumBuild)',
+      note:'Open the URL and sign in.'},
+    {key:'clockKiosk', name:'Zanna Clock — Kiosk',
+      note:'1) Open this URL on the tablet. 2) Add to Home Screen. 3) Register the device so clock in/out is allowed. Clocking only works from registered devices.'},
+    {key:'clockCanteen', name:'Clock — Canteen Display',
+      note:'Display only. Open on the canteen screen and Add to Home Screen. No device token — read-only view.'},
+    {key:'clockOffice', name:'Clock — Office Display',
+      note:'Display only. Open on the office screen and Add to Home Screen. No device token — read-only view.'},
+    {key:'clockEmergency', name:'Emergency Register',
+      note:'Fire-marshal view. Open on the office screen or a phone. No device token — read-only view.'}
+  ];
 
   function getToken(promptIfMissing){
     const params = new URLSearchParams(location.hash.slice(1));
@@ -225,6 +300,7 @@
   }
 
   function build(apps){
+    panelApps = apps || {};
     document.querySelectorAll('[data-app]').forEach(el => {
       const key = el.dataset.app;
       const url = apps[key];
@@ -243,6 +319,54 @@
     });
     setState('authed');
   }
+
+  function buildSetup(){
+    const list = document.getElementById('setupList');
+    list.innerHTML = '';
+    SETUP.forEach(item => {
+      const url = panelApps[item.key];
+      const wrap = document.createElement('div');
+      wrap.className = 'setup-item';
+
+      const h = document.createElement('h3');
+      h.textContent = item.name;
+      wrap.appendChild(h);
+
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = item.note;
+      wrap.appendChild(note);
+
+      if (url && /^https?:\/\//.test(url)) {
+        const row = document.createElement('div');
+        row.className = 'setup-url';
+        const code = document.createElement('code');
+        code.textContent = url;
+        row.appendChild(code);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', () => {
+          navigator.clipboard.writeText(url).then(() => {
+            btn.textContent = 'Copied';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+          }).catch(() => { btn.textContent = 'Copy failed'; });
+        });
+        row.appendChild(btn);
+        wrap.appendChild(row);
+      } else {
+        const na = document.createElement('p');
+        na.className = 'na';
+        na.textContent = 'Not configured yet — set its URL in Panel_Apps.';
+        wrap.appendChild(na);
+      }
+      list.appendChild(wrap);
+    });
+  }
+
+  function openSetup(){ buildSetup(); document.body.classList.add('setup-open'); }
+  function closeSetup(){ document.body.classList.remove('setup-open'); }
 
   async function attempt(promptIfMissing){
     const token = getToken(promptIfMissing);
@@ -270,6 +394,15 @@
     e.preventDefault();
     localStorage.removeItem(KEY);
     location.reload();
+  });
+
+  document.getElementById('setupBtn').addEventListener('click', openSetup);
+  document.getElementById('setupClose').addEventListener('click', closeSetup);
+  document.getElementById('setupModal').addEventListener('click', e => {
+    if (e.target.id === 'setupModal') closeSetup();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeSetup();
   });
 
   attempt(true);
