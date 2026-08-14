@@ -36,6 +36,7 @@
   .gate input:focus{outline:2px solid var(--glaze-a);outline-offset:1px}
   .gate .err{color:var(--danger);font-size:13.5px;margin-top:12px;min-height:19px;line-height:1.45}
   .gate .back{display:inline-block;margin-top:18px;font-size:13px;color:var(--faint)}
+  .ver{margin-top:14px;font-size:11px;color:var(--faint);font-family:ui-monospace,Menlo,Consolas,monospace}
 
   /* ── Shell ────────────────────────────────────────────── */
   .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
@@ -144,6 +145,9 @@
      ===================================================================== -->
 <script>
   const EXEC_URL = "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec";
+  // Bump on every change to this file. Shown on screen so a stale cached copy
+  // is visible at a glance instead of being mistaken for a backend problem.
+  const CONSOLE_VERSION = "1.1.0 (2026-08-14)";
 </script>
 
 <!-- ── Gate ─────────────────────────────────────────────── -->
@@ -160,6 +164,7 @@
   </form>
   <p class="err" id="gateErr" role="alert"></p>
   <a class="back" href="./index.html">← back to the control panel</a>
+  <p class="ver" id="gateVer"></p>
 </div>
 
 <!-- ── Console ──────────────────────────────────────────── -->
@@ -170,7 +175,7 @@
       <h1>Data Maintenance</h1>
     </div>
     <div class="meta">
-      Session ends in <span id="countdown">30:00</span><br>
+      Session ends in <span id="countdown">30:00</span> · <span id="verLine"></span><br>
       <a href="./index.html">control panel</a> ·
       <a href="#" id="signout">sign out</a>
     </div>
@@ -468,6 +473,16 @@
     toast(msg, true);
   }
 
+  /* ── Version display ────────────────────────────────── */
+  var backendVersion = null;
+  function showVersions(){
+    var fe = 'page ' + CONSOLE_VERSION;
+    var be = backendVersion ? 'server ' + backendVersion : 'server not reached';
+    $('gateVer').textContent = fe + ' · ' + be;
+    $('verLine').textContent = fe + ' · ' + be;
+  }
+  showVersions();
+
   /* ── Gate ───────────────────────────────────────────── */
   $('gateForm').addEventListener('submit', function(e){
     e.preventDefault();
@@ -480,6 +495,7 @@
       .then(function(r){ return r.json(); })
       .then(function(data){
         $('gateBtn').disabled = false;
+        if (data && data.version) { backendVersion = data.version; showVersions(); }
         if (data && data.ok) {
           session = data.session;
           sessionStorage.setItem(SESSION_KEY, session);
@@ -492,9 +508,23 @@
           $('gateErr').textContent = 'Too many failed attempts. Locked for ' + (data.minutes || 15) + ' minutes.';
         } else if (data && data.error === 'not_configured') {
           $('gateErr').textContent = 'Admin_PIN is not set in Script Properties yet.';
-        } else {
-          var left = data && typeof data.remaining === 'number' ? data.remaining : null;
+        } else if (data && data.error === 'bad_pin') {
+          var left = typeof data.remaining === 'number' ? data.remaining : null;
           $('gateErr').textContent = 'Incorrect PIN.' + (left !== null ? ' ' + left + ' attempt' + (left === 1 ? '' : 's') + ' left.' : '');
+        } else {
+          // Anything else is a wiring problem, not a wrong PIN. Reporting it as
+          // "Incorrect PIN" sends people off checking a PIN that was fine all along —
+          // so show what the server actually said.
+          var raw = (data && (data.error || data.detail)) || 'no recognisable response';
+          $('gateErr').textContent = 'Server rejected the request: ' + raw;
+          if (!data || !data.version) {
+            $('gateErr').textContent += ' — and it reported no version, so Admin.gs is not running in the deployed code.';
+          }
+          if (/unknown action/i.test(raw)) {
+            $('gateErr').textContent += ' — the Apps Script deployment is stale. Redeploy as a NEW VERSION of the existing deployment.';
+          } else if (/adminHandle|not defined/i.test(raw)) {
+            $('gateErr').textContent += ' — Admin.gs is missing from the script project.';
+          }
         }
       })
       .catch(function(){
