@@ -62,6 +62,13 @@
   .tile.lms{background:linear-gradient(160deg,#4e6376 0%,#3a4e60 60%)}
   .tile.clock{background:linear-gradient(160deg,#6b5a42 0%,#54452f 60%)}
   .tile.clock.emergency{background:linear-gradient(160deg,#8f3030 0%,#6e1f1f 60%)}
+  /* Management tile — muted on purpose so it does not compete with the staff apps */
+  .tile.admin{background:linear-gradient(160deg,#4a4a46 0%,#35352f 60%)}
+  .tile .badge{
+    position:absolute;bottom:22px;right:22px;font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;font-weight:600;opacity:.8;
+    border:1px solid rgba(255,255,255,.45);border-radius:20px;padding:3px 9px;
+  }
   .tile .icon{font-size:30px;line-height:1;margin-bottom:14px;display:block}
   .tile h2{font-family:'Fraunces',serif;font-size:24px;font-weight:600;margin-bottom:6px}
   .tile .desc{font-size:14px;opacity:.9;line-height:1.45}
@@ -72,14 +79,10 @@
     background:#b7b2a5;pointer-events:none;
     box-shadow:inset 0 2px 0 rgba(255,255,255,.2), 0 3px 0 rgba(34,48,43,.12);
   }
-  .cell.unconfigured .url a{pointer-events:none;border-bottom:none}
-
-  .url{margin-top:10px;text-align:center;font-size:13px}
-  .url a{
-    color:#4a5a52;text-decoration:none;word-break:break-all;
-    border-bottom:1px dotted #9aa79f;
+  .cell.unconfigured .tile h2::after{
+    content:' — not set up';font-size:13px;font-weight:400;opacity:.75;
   }
-  .url a:hover{color:var(--ink)}
+
   .cell{display:flex;flex-direction:column}
 
   footer{margin-top:48px;font-size:12px;color:#8b948d;text-align:center;line-height:1.8}
@@ -141,6 +144,14 @@
   .setup-url button.copied{background:var(--glaze-b)}
   .setup-item .na{font-size:13px;color:#8b948d;font-style:italic}
 
+  /* Build tag sits OUTSIDE the gated blocks on purpose — the question it answers
+     ("did my commit actually publish?") has to be answerable without signing in. */
+  .buildtag{
+    position:fixed;right:10px;bottom:8px;z-index:5;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;
+    color:#a8b0a9;letter-spacing:.03em;pointer-events:none;
+  }
+
   @media (prefers-reduced-motion: reduce){ .tile{transition:none} }
 </style>
 </head>
@@ -155,6 +166,9 @@
      ==================================================================== -->
 <script>
   const EXEC_URL = "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec";
+  // Bump on every change to this file, then check the corner of the live page
+  // to confirm GitHub Pages actually rebuilt with your commit.
+  const PANEL_VERSION = "1.2.0 (2026-08-14)";
 </script>
 
   <header>
@@ -171,7 +185,6 @@
         <h2>FairLeave</h2>
         <p class="desc">Book holidays, check your balance, and arrange swaps — self-managed, first come first served.</p>
       </a>
-      <p class="url"><a data-app="fairleave"></a></p>
     </div>
 
     <div class="cell">
@@ -181,7 +194,6 @@
         <h2>Shift Scheduler</h2>
         <p class="desc">View the rota, see who's on, and check upcoming shifts across all teams.</p>
       </a>
-      <p class="url"><a data-app="scheduler"></a></p>
     </div>
 
     <div class="cell">
@@ -191,7 +203,6 @@
         <h2>Training LMS</h2>
         <p class="desc">QuantumBuild learning platform — courses, certifications, and staff training records.</p>
       </a>
-      <p class="url"><a data-app="lms"></a></p>
     </div>
 
     <div class="cell">
@@ -201,7 +212,6 @@
         <h2>Zanna Clock — Kiosk</h2>
         <p class="desc">Clock in and out, start and end breaks. For the tablet kiosks only.</p>
       </a>
-      <p class="url"><a data-app="clockKiosk"></a></p>
     </div>
 
     <div class="cell">
@@ -211,7 +221,6 @@
         <h2>Clock — Canteen Display</h2>
         <p class="desc">Live break timers for the canteen smart screen.</p>
       </a>
-      <p class="url"><a data-app="clockCanteen"></a></p>
     </div>
 
     <div class="cell">
@@ -221,7 +230,6 @@
         <h2>Clock — Office Display</h2>
         <p class="desc">Full-detail live break view for the office smart screen.</p>
       </a>
-      <p class="url"><a data-app="clockOffice"></a></p>
     </div>
 
     <div class="cell">
@@ -231,9 +239,19 @@
         <h2>Emergency Register</h2>
         <p class="desc">Who is in the building right now, grouped by department. Fire marshal view.</p>
       </a>
-      <p class="url"><a data-app="clockEmergency"></a></p>
+    </div>
+    <div class="cell">
+      <a class="tile admin" href="./admin.html">
+        <span class="go">→</span>
+        <span class="icon">🔧</span>
+        <h2>Data Maintenance</h2>
+        <p class="desc">Employees, team leave limits, blackouts and app settings. Needs the admin PIN.</p>
+        <span class="badge">Management</span>
+      </a>
     </div>
   </div>
+
+  <p class="buildtag" id="buildtag"></p>
 
   <p class="status checking">Checking access…</p>
   <p class="status denied">🔒 This page is for Zanna Cookhouse staff.<br>
@@ -245,7 +263,6 @@
 
   <footer>Zanna Cookhouse internal tools · bookmark this page or add it to your home screen<br>
     <button class="setup-trigger" id="setupBtn" type="button">📲 Set up a device / app URLs</button>
-    · <a class="setup-trigger" href="./admin.html" rel="noopener">🔧 Data maintenance</a>
     · <a href="#" id="logout">log out</a></footer>
 
   <!-- Set up a device / deploy panel. URLs are read from the same server-verified
@@ -262,6 +279,7 @@
 <script>
 (function(){
   const KEY = 'zc_panel_token';
+  document.getElementById('buildtag').textContent = 'panel ' + PANEL_VERSION;
   const setState = s => document.body.className = s;
   let panelApps = {};
 
@@ -312,14 +330,13 @@
       // Treat missing keys and unreplaced placeholders as "not configured"
       if (!url || !/^https?:\/\//.test(url)) {
         if (cell) cell.classList.add('unconfigured');
-        if (!el.classList.contains('tile')) el.textContent = 'not configured yet';
         el.removeAttribute('href');
         return;
       }
+      // The URL goes on the href only — never rendered as text. Several of these
+      // carry device tokens in the fragment, and the panel is readable by every
+      // member of staff who has the access code.
       el.href = url;
-      if (!el.classList.contains('tile')) {
-        el.textContent = url.replace(/^https?:\/\//,'');
-      }
     });
     setState('authed');
   }
