@@ -365,7 +365,8 @@
       <div class="field"><label for="fName">Name</label><input type="text" id="fName" maxlength="80"></div>
       <div class="field"><label for="fId">Scheduler employee ID</label><input type="text" id="fId" maxlength="30">
         <p class="hint">The Scheduler's own ID. Leave blank on a new record to auto-number.</p></div>
-      <div class="field"><label for="fEmail">Email</label><input type="email" id="fEmail" maxlength="120"></div>
+      <div class="field"><label for="fEmail">Email</label><input type="email" id="fEmail" maxlength="120">
+        <p class="hint" id="emailHint"></p></div>
       <div class="field"><label for="fTeam">Department</label><input type="text" id="fTeam" list="teamList" maxlength="60">
         <datalist id="teamList"></datalist>
         <p class="hint">Sync creates a matching FairLeave team if this is a new name (default limit 1 off per day).</p></div>
@@ -400,7 +401,8 @@
   var SESSION_KEY = 'zc_admin_session';
   var session = sessionStorage.getItem(SESSION_KEY) || '';
   var employees = [], teams = [], blackouts = [], settings = [], apps = {}, knownKeys = [];
-  var entOwner = 'fairleave';
+  var entOwner = 'fairleave', emailOwner = 'fairleave';
+  var available = { email: false, role: false, start: false };
   var editing = null, expiresAt = 0, tick = null;
 
   var APP_LABELS = {
@@ -561,6 +563,8 @@
       employees = res.employees || [];
       teams = res.teams || [];
       entOwner = res.entitlementOwner || 'fairleave';
+      emailOwner = res.emailOwner || 'fairleave';
+      available = res.available || { email: false, role: false, start: false };
       renderEmployees();
       var note = $('empNote');
       if (res.schedWarning) { note.textContent = 'Scheduler: ' + res.schedWarning; note.hidden = false; }
@@ -635,7 +639,15 @@
 
     $('entHint').textContent = entOwner === 'scheduler'
       ? 'The Scheduler owns this field — written there, so the next sync cannot overwrite it.'
-      : 'The Scheduler has no entitlement column, so this is stored in FairLeave.';
+      : 'Stored in FairLeave. The Scheduler has no entitlement column, and its sync leaves this value alone.';
+
+    $('emailHint').textContent = emailOwner === 'scheduler'
+      ? 'Written to the Scheduler.'
+      : 'Stored in FairLeave — the Scheduler has no Email column. Used for swap notifications.';
+
+    // Role and Start Date only exist if the Scheduler has those columns.
+    $('fRole').closest('.field').hidden = !available.role;
+    $('fStart').closest('.field').hidden = !available.start;
 
     // Both of these need a FairLeave record, which a not-yet-imported person lacks.
     var hasFl = !!(e && e.id);
