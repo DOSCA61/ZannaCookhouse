@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
 <title>Zanna Cookhouse — Control Panel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -104,6 +105,7 @@
     cursor:pointer;border-bottom:1px dotted #9aa79f;padding:0;
   }
   .setup-trigger:hover{color:var(--ink)}
+  a.setup-trigger{text-decoration:none;display:inline-block}
   .setup-trigger:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
   .modal{
     display:none;position:fixed;inset:0;z-index:50;
@@ -242,7 +244,9 @@
     <button id="reload">Retry</button></p>
 
   <footer>Zanna Cookhouse internal tools · bookmark this page or add it to your home screen<br>
-    <button class="setup-trigger" id="setupBtn" type="button">📲 Set up a device / app URLs</button> · <a href="#" id="logout">log out</a></footer>
+    <button class="setup-trigger" id="setupBtn" type="button">📲 Set up a device / app URLs</button>
+    · <a class="setup-trigger" href="./admin.html" rel="noopener">🔧 Data maintenance</a>
+    · <a href="#" id="logout">log out</a></footer>
 
   <!-- Set up a device / deploy panel. URLs are read from the same server-verified
        config as the tiles — nothing new is exposed, and it only opens once authed. -->
