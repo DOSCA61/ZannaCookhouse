@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Zanna Cookhouse — Data Maintenance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#22302b; --plaster:#f0ece3; --glaze-a:#3e6b5a; --glaze-b:#b4552d;
+    --grout:#d8d2c4; --white:#fbfaf6; --muted:#5b665f; --faint:#8b948d;
+    --danger:#8f3030;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:'Inter',system-ui,sans-serif;background:var(--plaster);color:var(--ink);
+    min-height:100vh;padding:32px 20px 64px;
+    background-image:linear-gradient(var(--grout) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--grout) 1px,transparent 1px);
+    background-size:72px 72px;
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+
+  /* ── Gate ─────────────────────────────────────────────── */
+  .gate{max-width:420px;margin:12vh auto;background:var(--white);border-radius:14px;
+    padding:32px 30px;box-shadow:0 8px 30px rgba(34,48,43,.16);text-align:center}
+  .gate .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--glaze-b);font-weight:600;margin-bottom:10px}
+  .gate h1{font-family:'Fraunces',serif;font-size:27px;font-weight:700;margin-bottom:6px}
+  .gate p{font-size:14px;color:var(--muted);line-height:1.55;margin-bottom:20px}
+  .gate input{width:100%;font:inherit;font-size:16px;padding:11px 13px;border:1px solid var(--grout);
+    border-radius:9px;background:var(--plaster);text-align:center;letter-spacing:.05em}
+  .gate input:focus{outline:2px solid var(--glaze-a);outline-offset:1px}
+  .gate .err{color:var(--danger);font-size:13.5px;margin-top:12px;min-height:19px;line-height:1.45}
+  .gate .back{display:inline-block;margin-top:18px;font-size:13px;color:var(--faint)}
+
+  /* ── Shell ────────────────────────────────────────────── */
+  .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+    flex-wrap:wrap;margin-bottom:22px}
+  .topbar .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--glaze-b);font-weight:600;margin-bottom:6px}
+  .topbar h1{font-family:'Fraunces',serif;font-size:clamp(26px,4vw,36px);font-weight:700;line-height:1.1}
+  .topbar .meta{font-size:12.5px;color:var(--faint);text-align:right;line-height:1.7}
+  .topbar .meta a{color:var(--muted)}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:2px solid var(--grout);margin-bottom:22px}
+  .tabs button{font:inherit;font-size:14px;font-weight:600;color:var(--muted);background:none;
+    border:0;border-bottom:3px solid transparent;padding:10px 15px;cursor:pointer;margin-bottom:-2px}
+  .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--glaze-a)}
+  .tabs button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+  .panel{display:none}
+  .panel.active{display:block}
+
+  .card{background:var(--white);border-radius:12px;padding:22px 24px;
+    box-shadow:0 3px 14px rgba(34,48,43,.09);margin-bottom:20px}
+  .card h2{font-family:'Fraunces',serif;font-size:21px;font-weight:600;margin-bottom:4px}
+  .card .sub{font-size:13.5px;color:var(--muted);line-height:1.55;margin-bottom:16px}
+  .card .sub strong{color:var(--ink)}
+
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .bar input[type=search]{flex:1;min-width:180px;font:inherit;font-size:14px;padding:9px 12px;
+    border:1px solid var(--grout);border-radius:8px;background:var(--plaster)}
+  .bar label{font-size:13.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+
+  button.btn{font:inherit;font-size:13.5px;font-weight:600;color:var(--white);background:var(--glaze-a);
+    border:0;border-radius:8px;padding:9px 16px;cursor:pointer;white-space:nowrap}
+  button.btn:hover{filter:brightness(1.08)}
+  button.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  button.btn.ghost{background:none;color:var(--muted);border:1px solid var(--grout)}
+  button.btn.warn{background:var(--glaze-b)}
+  button.btn.danger{background:var(--danger)}
+  button.btn.sm{padding:6px 11px;font-size:12.5px}
+  button.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;letter-spacing:.05em;
+    text-transform:uppercase;padding:8px 10px;border-bottom:2px solid var(--grout);white-space:nowrap}
+  td{padding:9px 10px;border-bottom:1px solid var(--grout);vertical-align:middle}
+  tbody tr:hover{background:var(--plaster)}
+  tr.inactive td{opacity:.55}
+  .pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;
+    background:var(--grout);color:var(--muted)}
+  .pill.on{background:#d9e8e0;color:#2f5b48}
+  .pill.off{background:#e8d9d9;color:#7a3535}
+  .pill.warnflag{background:#f0e2d2;color:#8a4f22}
+  .tablewrap{overflow-x:auto}
+  .empty{padding:26px 10px;text-align:center;color:var(--faint);font-size:14px}
+
+  /* ── Forms ────────────────────────────────────────────── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+  .field label{display:block;font-size:12px;font-weight:600;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .field input,.field select{width:100%;font:inherit;font-size:14px;padding:9px 11px;
+    border:1px solid var(--grout);border-radius:8px;background:var(--plaster);color:var(--ink)}
+  .field input:focus,.field select:focus{outline:2px solid var(--glaze-a);outline-offset:1px}
+  .field input[readonly]{background:#eae6dd;color:var(--faint)}
+  .field .hint{font-size:11.5px;color:var(--faint);margin-top:4px;line-height:1.45}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;align-items:center}
+  .actions .spacer{flex:1}
+
+  /* ── Modal ────────────────────────────────────────────── */
+  .modal{display:none;position:fixed;inset:0;z-index:60;background:rgba(34,48,43,.55);
+    padding:20px;overflow-y:auto}
+  .modal.open{display:block}
+  .modal-card{background:var(--white);border-radius:14px;max-width:620px;width:100%;
+    margin:5vh auto;padding:24px 26px 28px;box-shadow:0 12px 40px rgba(34,48,43,.35)}
+  .modal-card h2{font-family:'Fraunces',serif;font-size:23px;font-weight:700;margin-bottom:3px}
+  .modal-card .sub{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5}
+  .modal-close{float:right;font-size:24px;line-height:1;border:0;background:none;
+    cursor:pointer;color:var(--faint)}
+
+  /* ── Toast ────────────────────────────────────────────── */
+  #toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(120%);
+    background:var(--ink);color:var(--white);font-size:14px;padding:12px 20px;border-radius:10px;
+    box-shadow:0 8px 24px rgba(34,48,43,.3);z-index:100;transition:transform .22s ease;
+    max-width:min(560px,92vw);line-height:1.45}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast.bad{background:var(--danger)}
+
+  .note{font-size:12.5px;color:var(--muted);line-height:1.6;background:var(--plaster);
+    border-left:3px solid var(--glaze-a);border-radius:0 8px 8px 0;padding:11px 14px;margin-top:14px}
+  .note.warn{border-left-color:var(--glaze-b)}
+  .note.danger{border-left-color:var(--danger)}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+    background:var(--plaster);border:1px solid var(--grout);border-radius:5px;padding:1px 5px}
+  pre{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.6;
+    background:var(--plaster);border:1px solid var(--grout);border-radius:8px;padding:12px;
+    overflow-x:auto;max-height:340px;white-space:pre-wrap;word-break:break-word}
+
+  body.busy{cursor:progress}
+  @media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     No secrets in this file. The admin PIN is verified server-side by
+     Admin.gs; every response is gated on a short-lived session token held
+     in sessionStorage only (cleared when the tab closes).
+     ===================================================================== -->
+<script>
+  const EXEC_URL = "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec";
+</script>
+
+<!-- ── Gate ─────────────────────────────────────────────── -->
+<div class="gate" id="gate">
+  <div class="eyebrow">Zanna Cookhouse</div>
+  <h1>Data Maintenance</h1>
+  <p>Management only. Enter the admin PIN to load employees and app settings.</p>
+  <form id="gateForm" autocomplete="off">
+    <input type="password" id="pin" placeholder="Admin PIN" autocomplete="current-password"
+           aria-label="Admin PIN" required>
+    <div class="actions" style="justify-content:center">
+      <button class="btn" type="submit" id="gateBtn">Unlock</button>
+    </div>
+  </form>
+  <p class="err" id="gateErr" role="alert"></p>
+  <a class="back" href="./index.html">← back to the control panel</a>
+</div>
+
+<!-- ── Console ──────────────────────────────────────────── -->
+<div class="wrap" id="app" hidden>
+  <div class="topbar">
+    <div>
+      <div class="eyebrow">Zanna Cookhouse</div>
+      <h1>Data Maintenance</h1>
+    </div>
+    <div class="meta">
+      Session ends in <span id="countdown">30:00</span><br>
+      <a href="./index.html">control panel</a> ·
+      <a href="#" id="signout">sign out</a>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="employees" aria-selected="true">Employees</button>
+    <button role="tab" data-tab="teams" aria-selected="false">Teams &amp; capacity</button>
+    <button role="tab" data-tab="blackouts" aria-selected="false">Blackouts</button>
+    <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
+    <button role="tab" data-tab="apps" aria-selected="false">App URLs</button>
+    <button role="tab" data-tab="audit" aria-selected="false">Audit</button>
+  </div>
+
+  <!-- EMPLOYEES -->
+  <section class="panel active" data-panel="employees">
+    <div class="card">
+      <h2>Employees</h2>
+      <p class="sub">The <strong>Shift Scheduler is the source of truth</strong> for people. Saving here writes
+        to the Scheduler sheet and then runs FairLeave's existing one-way sync, so nothing diverges.
+        Entitlement goes wherever the sync will not overwrite it — the console tells you which.</p>
+
+      <div class="bar">
+        <input type="search" id="empSearch" placeholder="Search name, email, team…" aria-label="Search employees">
+        <label><input type="checkbox" id="showInactive"> show archived</label>
+        <button class="btn" id="addEmp">+ Add employee</button>
+        <button class="btn ghost sm" id="syncEmp">Sync from Scheduler</button>
+        <button class="btn ghost sm" id="reloadEmp">Reload</button>
+      </div>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th>Name</th><th>Sched. ID</th><th>Team</th><th>Email</th>
+            <th>Leave</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="empBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="empEmpty" hidden>No employees loaded.</p>
+      <p class="note" id="empNote" hidden></p>
+      <p class="note warn">Anyone marked <em>not imported</em> exists in the Scheduler but has not been
+        synced into FairLeave yet — they have no leave record and no private link until you sync.</p>
+    </div>
+  </section>
+
+  <!-- TEAMS -->
+  <section class="panel" data-panel="teams">
+    <div class="card">
+      <h2>Teams &amp; concurrency limits</h2>
+      <p class="sub">Capacity is the maximum number of people from a team who can be off on any one
+        <strong>working</strong> day. FairLeave auto-approves up to this number, first come first served —
+        past it, staff resolve it between themselves with a swap.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Team</th><th style="width:110px">Members</th><th style="width:160px">Max off per day</th><th style="width:150px"></th></tr></thead>
+          <tbody id="teamBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="teamEmpty" hidden>No teams found.</p>
+      <div class="actions">
+        <button class="btn" id="addTeam">+ Add team</button>
+        <button class="btn ghost sm" id="reloadTeams">Reload</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLACKOUTS -->
+  <section class="panel" data-panel="blackouts">
+    <div class="card">
+      <h2>Blackout periods</h2>
+      <p class="sub">Hard company-wide blocks — nobody can book leave across these dates. Per-team blackouts
+        are deliberately not supported; that was a locked simplification.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>From</th><th>To</th><th>Reason</th><th style="width:90px"></th></tr></thead>
+          <tbody id="boBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="boEmpty" hidden>No blackout periods set.</p>
+
+      <div class="grid" style="margin-top:18px">
+        <div class="field"><label for="boStart">From</label><input type="date" id="boStart"></div>
+        <div class="field"><label for="boEnd">To</label><input type="date" id="boEnd"></div>
+        <div class="field"><label for="boReason">Reason</label>
+          <input type="text" id="boReason" placeholder="e.g. Christmas service" maxlength="80"></div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="addBo">Add blackout</button>
+        <button class="btn ghost sm" id="reloadBo">Reload</button>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="importLeave">Import existing scheduler leave</button>
+      </div>
+      <p class="note">The import is a one-time catch-up: it pulls approved leave that already exists in the
+        Scheduler into FairLeave as bookings. Rows FairLeave itself pushed are skipped, so running it twice
+        does not duplicate anything.</p>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="panel" data-panel="settings">
+    <div class="card">
+      <h2>FairLeave settings</h2>
+      <p class="sub">Key/value config read live from the Config tab. Anything credential-shaped
+        (PIN, token, secret) is deliberately not editable or even readable here — change those in
+        Script Properties.</p>
+      <div class="grid" id="setGrid"></div>
+      <p class="empty" id="setEmpty" hidden>No settings found.</p>
+      <div class="actions">
+        <button class="btn" id="saveSettings">Save settings</button>
+        <button class="btn ghost sm" id="reloadSettings">Reload</button>
+      </div>
+      <p class="note warn"><code>SCHEDULER_SHEET_ID</code> is what links this whole system to the Shift
+        Scheduler. Changing it repoints every sync, import and leave push. <code>MGMT_PIN</code> is hidden
+        here on purpose — change it in the Config tab of the sheet itself.</p>
+    </div>
+  </section>
+
+  <!-- APP URLS -->
+  <section class="panel" data-panel="apps">
+    <div class="card">
+      <h2>App URLs</h2>
+      <p class="sub">These are the <code>Panel_Apps</code> entries the control panel hands out after a
+        successful access check. Leave a field blank to grey that tile out. HTTPS only.</p>
+      <div class="grid" id="appGrid"></div>
+      <div class="actions">
+        <button class="btn" id="saveApps">Save URLs</button>
+        <button class="btn ghost sm" id="reloadApps">Reload</button>
+      </div>
+      <p class="note warn"><strong>Careful with the FairLeave and Scheduler URLs.</strong> Those are
+        <code>/exec</code> endpoints. If you ever redeploy, always use <em>Manage deployments → ✏️ → New
+        version</em>. A "New deployment" mints a fresh URL and every staff link breaks.</p>
+    </div>
+
+    <div class="card">
+      <h2>Panel access code</h2>
+      <p class="sub">The code staff type to open the control panel. The current value is never shown —
+        only its length. Rotating it signs every device out.</p>
+      <div class="grid">
+        <div class="field">
+          <label for="tokLen">Current</label>
+          <input type="text" id="tokLen" readonly>
+        </div>
+        <div class="field">
+          <label for="newTok">New access code</label>
+          <input type="text" id="newTok" placeholder="12+ characters, no spaces" autocomplete="off">
+          <p class="hint">Staff will need to re-enter this on every device.</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn warn" id="rotateTok">Rotate access code</button>
+        <button class="btn ghost sm" id="genTok">Suggest one</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUDIT -->
+  <section class="panel" data-panel="audit">
+    <div class="card">
+      <h2>Audit log</h2>
+      <p class="sub">Every change made through this console, plus FairLeave's own mutations. Newest first.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th style="width:135px">When</th><th style="width:90px">Who</th>
+            <th style="width:170px">Action</th><th>Details</th></tr></thead>
+          <tbody id="auditBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="auditEmpty" hidden>No audit entries.</p>
+      <div class="actions">
+        <button class="btn ghost sm" id="reloadAudit">Reload</button>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="runDiag">Run diagnostic</button>
+      </div>
+      <div id="diagOut" hidden>
+        <p class="note">Tab names and resolved column headers, straight from both sheets. Run this
+          first when something is not saving — it tells you whether a column simply was not recognised.</p>
+        <pre id="diagPre"></pre>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ── Employee modal ───────────────────────────────────── -->
+<div class="modal" id="empModal" role="dialog" aria-modal="true" aria-labelledby="empModalTitle">
+  <div class="modal-card">
+    <button class="modal-close" id="empClose" type="button" aria-label="Close">×</button>
+    <h2 id="empModalTitle">Edit employee</h2>
+    <p class="sub">Written to the Shift Scheduler, then synced into FairLeave. Only fields that exist as
+      columns in the Scheduler are written — the rest are left alone rather than guessed at.</p>
+    <div class="grid">
+      <div class="field"><label for="fName">Name</label><input type="text" id="fName" maxlength="80"></div>
+      <div class="field"><label for="fId">Scheduler employee ID</label><input type="text" id="fId" maxlength="30">
+        <p class="hint">The Scheduler's own ID. Leave blank on a new record to auto-number.</p></div>
+      <div class="field"><label for="fEmail">Email</label><input type="email" id="fEmail" maxlength="120"></div>
+      <div class="field"><label for="fTeam">Department</label><input type="text" id="fTeam" list="teamList" maxlength="60">
+        <datalist id="teamList"></datalist>
+        <p class="hint">Sync creates a matching FairLeave team if this is a new name (default limit 1 off per day).</p></div>
+      <div class="field"><label for="fRole">Role</label><input type="text" id="fRole" maxlength="60"></div>
+      <div class="field"><label for="fStart">Start date</label><input type="date" id="fStart"></div>
+      <div class="field"><label for="fEnt">Leave entitlement (days)</label>
+        <input type="number" id="fEnt" min="0" max="60" step="1">
+        <p class="hint" id="entHint"></p></div>
+      <div class="field"><label for="fActive">Status</label>
+        <select id="fActive"><option value="yes">Active</option><option value="no">Archived</option></select></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="empSave">Save</button>
+      <button class="btn ghost" id="empCancel">Cancel</button>
+      <span class="spacer"></span>
+      <button class="btn ghost sm" id="empRegen">Reissue private link</button>
+      <button class="btn danger sm" id="empArchive">Archive</button>
+    </div>
+    <p class="note danger" id="empArchiveNote" hidden>Archiving marks the person inactive in the Scheduler,
+      cancels their approved bookings and closes any pending swaps. Bookings, swaps and audit history are
+      all retained — nothing is deleted.</p>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ── State ──────────────────────────────────────────── */
+  var SESSION_KEY = 'zc_admin_session';
+  var session = sessionStorage.getItem(SESSION_KEY) || '';
+  var employees = [], teams = [], blackouts = [], settings = [], apps = {}, knownKeys = [];
+  var entOwner = 'fairleave';
+  var editing = null, expiresAt = 0, tick = null;
+
+  var APP_LABELS = {
+    fairleave:'FairLeave', scheduler:'Shift Scheduler', lms:'Training LMS (QuantumBuild)',
+    clockKiosk:'Zanna Clock — Kiosk', clockCanteen:'Clock — Canteen Display',
+    clockOffice:'Clock — Office Display', clockEmergency:'Emergency Register'
+  };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var el = function(tag, text, cls){
+    var n = document.createElement(tag);
+    if (text != null) n.textContent = text;   // textContent everywhere — never innerHTML with data
+    if (cls) n.className = cls;
+    return n;
+  };
+
+  /* ── Transport ──────────────────────────────────────── */
+  // No custom headers: keeps this a CORS "simple request" so Apps Script
+  // never sees a preflight it cannot answer.
+  function call(op, extra){
+    var payload = Object.assign({ action:'admin', op:op, session:session }, extra || {});
+    document.body.classList.add('busy');
+    return fetch(EXEC_URL, { method:'POST', body: JSON.stringify(payload) })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data && data.error === 'session_expired') { signOut('Session expired — sign in again.'); throw new Error('session_expired'); }
+        // The server extends the session on every call, so the visible countdown
+        // has to follow suit — otherwise a busy tab logs itself out mid-edit.
+        touchSession();
+        return data;
+      })
+      .finally(function(){ document.body.classList.remove('busy'); });
+  }
+
+  function toast(msg, bad){
+    var t = $('toast');
+    t.textContent = msg;
+    t.className = 'show' + (bad ? ' bad' : '');
+    clearTimeout(t._h);
+    t._h = setTimeout(function(){ t.className = ''; }, bad ? 5200 : 3000);
+  }
+
+  function fail(res, fallback){
+    var map = {
+      scheduler_unavailable: 'Cannot reach the Shift Scheduler sheet. Check SCHEDULER_SHEET_ID in Settings, then run the diagnostic.',
+      scheduler_headers_unrecognised: 'The Scheduler Employees tab has no recognisable ID or Name column.',
+      missing_name: 'Name is required.',
+      not_found: 'That record no longer exists — reload.',
+      sync_failed: 'The sync from the Scheduler did not complete.',
+      import_failed: 'The leave import did not complete.',
+      save_failed: 'The server refused the save.',
+      delete_failed: 'The server refused the delete.',
+      regen_failed: 'Could not reissue the link.',
+      end_before_start: 'The end date is before the start date.',
+      invalid_urls: 'Rejected — URLs must start with https://',
+      too_short: 'Access code must be at least 12 characters.',
+      no_spaces: 'Access code cannot contain spaces.',
+      not_configured: 'Admin_PIN is not set in Script Properties yet.'
+    };
+    var key = res && res.error;
+    var msg = map[key] || (res && res.detail) || fallback || 'Something went wrong.';
+    if (res && res.rejected) msg += ' (' + res.rejected.join(', ') + ')';
+    toast(msg, true);
+  }
+
+  /* ── Gate ───────────────────────────────────────────── */
+  $('gateForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var pin = $('pin').value;
+    if (!pin) return;
+    $('gateBtn').disabled = true;
+    $('gateErr').textContent = '';
+
+    fetch(EXEC_URL, { method:'POST', body: JSON.stringify({ action:'admin', op:'auth', pin:pin }) })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        $('gateBtn').disabled = false;
+        if (data && data.ok) {
+          session = data.session;
+          sessionStorage.setItem(SESSION_KEY, session);
+          $('pin').value = '';
+          if (data.weakPin) {
+            setTimeout(function(){ toast('Admin PIN is shorter than 10 characters — lengthen it in Script Properties.', true); }, 900);
+          }
+          start(data.expiresIn || 1800);
+        } else if (data && data.error === 'locked_out') {
+          $('gateErr').textContent = 'Too many failed attempts. Locked for ' + (data.minutes || 15) + ' minutes.';
+        } else if (data && data.error === 'not_configured') {
+          $('gateErr').textContent = 'Admin_PIN is not set in Script Properties yet.';
+        } else {
+          var left = data && typeof data.remaining === 'number' ? data.remaining : null;
+          $('gateErr').textContent = 'Incorrect PIN.' + (left !== null ? ' ' + left + ' attempt' + (left === 1 ? '' : 's') + ' left.' : '');
+        }
+      })
+      .catch(function(){
+        $('gateBtn').disabled = false;
+        $('gateErr').textContent = 'Cannot reach the server. Check your connection.';
+      });
+  });
+
+  function signOut(msg){
+    if (session) {
+      // Fire and forget — local state is cleared either way, but the server-side
+      // session must actually die, or "sign out" is only cosmetic.
+      fetch(EXEC_URL, { method:'POST', body: JSON.stringify({ action:'admin', op:'signOut', session:session }) })
+        .catch(function(){});
+    }
+    sessionStorage.removeItem(SESSION_KEY);
+    session = '';
+    if (tick) clearInterval(tick);
+    $('app').hidden = true;
+    $('gate').style.display = '';
+    if (msg) $('gateErr').textContent = msg;
+  }
+
+  $('signout').addEventListener('click', function(e){ e.preventDefault(); signOut(''); });
+
+  function start(seconds){
+    $('gate').style.display = 'none';
+    $('app').hidden = false;
+    expiresAt = Date.now() + seconds * 1000;
+    if (tick) clearInterval(tick);
+    tick = setInterval(countdown, 1000);
+    countdown();
+    loadEmployees();
+  }
+
+  function countdown(){
+    var left = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+    var m = Math.floor(left / 60), s = left % 60;
+    $('countdown').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    if (left === 0) signOut('Session timed out.');
+  }
+  function touchSession(){ expiresAt = Date.now() + 30 * 60 * 1000; }
+
+  /* ── Tabs ───────────────────────────────────────────── */
+  var LOADERS = { employees: loadEmployees, teams: loadTeams, blackouts: loadBlackouts,
+                  settings: loadSettings, apps: loadApps, audit: loadAudit };
+  var loaded = {};
+
+  document.querySelectorAll('.tabs button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.tabs button').forEach(function(x){ x.setAttribute('aria-selected','false'); });
+      b.setAttribute('aria-selected','true');
+      var name = b.dataset.tab;
+      document.querySelectorAll('.panel').forEach(function(p){
+        p.classList.toggle('active', p.dataset.panel === name);
+      });
+      if (!loaded[name] && LOADERS[name]) LOADERS[name]();
+    });
+  });
+
+  /* ── Employees ──────────────────────────────────────── */
+  function loadEmployees(){
+    loaded.employees = true;
+    call('employees.list').then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not load employees.'); return; }
+      employees = res.employees || [];
+      teams = res.teams || [];
+      entOwner = res.entitlementOwner || 'fairleave';
+      renderEmployees();
+      var note = $('empNote');
+      if (res.schedWarning) { note.textContent = 'Scheduler: ' + res.schedWarning; note.hidden = false; }
+      else { note.hidden = true; }
+    }).catch(function(){});
+  }
+
+  function renderEmployees(){
+    var q = $('empSearch').value.trim().toLowerCase();
+    var showAll = $('showInactive').checked;
+    var body = $('empBody');
+    body.textContent = '';
+
+    var list = employees.filter(function(e){
+      if (!showAll && !e.active) return false;
+      if (!q) return true;
+      return [e.name, e.email, e.team, e.extId].join(' ').toLowerCase().indexOf(q) !== -1;
+    });
+    $('empEmpty').hidden = list.length > 0;
+
+    list.forEach(function(e){
+      var tr = el('tr');
+      if (!e.active) tr.className = 'inactive';
+      tr.appendChild(el('td', e.name || '—'));
+      tr.appendChild(el('td', e.extId || '—'));
+      tr.appendChild(el('td', e.team || '—'));
+      tr.appendChild(el('td', e.email || '—'));
+
+      var tdLeave = el('td');
+      if (e.pendingImport) tdLeave.appendChild(el('span', 'not imported', 'pill warnflag'));
+      else tdLeave.textContent = e.used + ' / ' + e.entitlement + ' days';
+      tr.appendChild(tdLeave);
+
+      var tdSt = el('td');
+      tdSt.appendChild(el('span', e.active ? 'Active' : 'Archived', 'pill ' + (e.active ? 'on' : 'off')));
+      tr.appendChild(tdSt);
+
+      var tdAct = el('td');
+      var edit = el('button', 'Edit', 'btn ghost sm');
+      edit.addEventListener('click', function(){ openEmp(e); });
+      tdAct.appendChild(edit);
+      tr.appendChild(tdAct);
+      body.appendChild(tr);
+    });
+
+    // Department suggestions: FairLeave teams plus whatever the Scheduler already uses.
+    var dl = $('teamList');
+    dl.textContent = '';
+    var seen = {};
+    teams.forEach(function(t){ if (t.name) seen[t.name] = 1; });
+    employees.forEach(function(e){ if (e.team) seen[e.team] = 1; });
+    Object.keys(seen).forEach(function(nm){ var o = el('option'); o.value = nm; dl.appendChild(o); });
+  }
+
+  $('empSearch').addEventListener('input', renderEmployees);
+  $('showInactive').addEventListener('change', renderEmployees);
+  $('reloadEmp').addEventListener('click', loadEmployees);
+  $('addEmp').addEventListener('click', function(){ openEmp(null); });
+
+  function openEmp(e){
+    editing = e;
+    var isNew = !e;
+    $('empModalTitle').textContent = isNew ? 'Add employee' : 'Edit employee';
+    $('fName').value  = e ? e.name : '';
+    $('fId').value    = e ? e.extId : '';
+    $('fEmail').value = e ? e.email : '';
+    $('fTeam').value  = e ? e.team : '';
+    $('fRole').value  = '';
+    $('fStart').value = '';
+    $('fEnt').value   = e && !e.pendingImport ? e.entitlement : '';
+    $('fActive').value = e && !e.active ? 'no' : 'yes';
+
+    $('entHint').textContent = entOwner === 'scheduler'
+      ? 'The Scheduler owns this field — written there, so the next sync cannot overwrite it.'
+      : 'The Scheduler has no entitlement column, so this is stored in FairLeave.';
+
+    // Both of these need a FairLeave record, which a not-yet-imported person lacks.
+    var hasFl = !!(e && e.id);
+    $('empRegen').hidden = !hasFl;
+    $('empArchive').hidden = !hasFl || !e.active;
+    $('empArchiveNote').hidden = !hasFl;
+
+    $('empModal').classList.add('open');
+    setTimeout(function(){ $('fName').focus(); }, 40);
+  }
+  function closeEmp(){ $('empModal').classList.remove('open'); editing = null; }
+
+  $('empClose').addEventListener('click', closeEmp);
+  $('empCancel').addEventListener('click', closeEmp);
+  $('empModal').addEventListener('click', function(e){ if (e.target.id === 'empModal') closeEmp(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeEmp(); });
+
+  $('empSave').addEventListener('click', function(){
+    var name = $('fName').value.trim();
+    if (!name) { toast('Name is required.', true); return; }
+
+    var payload = {
+      extId: $('fId').value.trim(),
+      name: name,
+      email: $('fEmail').value.trim(),
+      team: $('fTeam').value.trim(),
+      role: $('fRole').value.trim(),
+      start: $('fStart').value,
+      active: $('fActive').value === 'yes',
+      entitlement: $('fEnt').value
+    };
+
+    $('empSave').disabled = true;
+    call('employees.save', { employee: payload }).then(function(res){
+      $('empSave').disabled = false;
+      if (!res || !res.ok) { fail(res, 'Could not save.'); return; }
+      var msg = (res.created ? 'Added ' : 'Updated ') + name + '.';
+      if (res.entitlementWrittenTo === 'scheduler') msg += ' Entitlement saved to the Scheduler.';
+      if (!res.syncOk) msg += ' Saved, but the sync did not run — press Sync from Scheduler.';
+      toast(msg, !res.syncOk);
+      closeEmp();
+      loadEmployees();
+      loaded.teams = false;   // sync may have created a new team
+    }).catch(function(){ $('empSave').disabled = false; });
+  });
+
+  $('empRegen').addEventListener('click', function(){
+    if (!editing || !editing.id) return;
+    if (!confirm('Reissue ' + editing.name + '\u2019s private FairLeave link?\n\nTheir current link stops working immediately. Share the new one from inside FairLeave using the QR code.')) return;
+    call('employees.regenToken', { id: editing.id }).then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not reissue the link.'); return; }
+      toast(res.message || 'New link issued.');
+    }).catch(function(){});
+  });
+
+  $('empArchive').addEventListener('click', function(){
+    if (!editing || !editing.id) return;
+    if (!confirm('Archive ' + editing.name + '?\n\nThey are marked inactive in the Scheduler, their approved bookings are cancelled and any pending swaps are closed. Nothing is deleted.')) return;
+    call('employees.archive', { id: editing.id }).then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not archive.'); return; }
+      toast('Archived — ' + (res.scheduler || 'done') + '.');
+      closeEmp();
+      loadEmployees();
+    }).catch(function(){});
+  });
+
+  $('syncEmp').addEventListener('click', function(){
+    $('syncEmp').disabled = true;
+    call('employees.sync').then(function(res){
+      $('syncEmp').disabled = false;
+      if (!res || !res.ok) { fail(res, 'Sync failed.'); return; }
+      toast(res.summary || 'Sync complete.');
+      loadEmployees();
+      loaded.teams = false;
+    }).catch(function(){ $('syncEmp').disabled = false; });
+  });
+
+  /* ── Teams ──────────────────────────────────────────── */
+  function loadTeams(){
+    loaded.teams = true;
+    call('teams.list').then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not load teams.'); return; }
+      teams = res.teams || [];
+      var body = $('teamBody');
+      body.textContent = '';
+      $('teamEmpty').hidden = teams.length > 0;
+
+      teams.forEach(function(t){
+        var tr = el('tr');
+        tr.appendChild(el('td', t.name));
+        tr.appendChild(el('td', String(t.members)));
+
+        var tdCap = el('td');
+        var inp = document.createElement('input');
+        inp.type = 'number'; inp.min = '1'; inp.max = '99'; inp.value = t.max;
+        inp.style.cssText = 'width:100px;font:inherit;padding:6px 9px;border:1px solid var(--grout);border-radius:7px;background:var(--plaster)';
+        tdCap.appendChild(inp);
+        tr.appendChild(tdCap);
+
+        var tdAct = el('td');
+        var save = el('button', 'Save', 'btn sm');
+        save.addEventListener('click', function(){
+          save.disabled = true;
+          call('teams.save', { team: { id: t.id, name: t.name, max: inp.value } }).then(function(r){
+            save.disabled = false;
+            if (!r || !r.ok) { fail(r, 'Could not save the team.'); return; }
+            toast(t.name + ': max ' + inp.value + ' off per working day.');
+            loadTeams();
+          }).catch(function(){ save.disabled = false; });
+        });
+        tdAct.appendChild(save);
+
+        var del = el('button', 'Delete', 'btn ghost sm');
+        del.style.marginLeft = '6px';
+        del.addEventListener('click', function(){
+          if (t.members > 0) { toast('Move its ' + t.members + ' member' + (t.members === 1 ? '' : 's') + ' to another team first.', true); return; }
+          if (!confirm('Delete the team "' + t.name + '"?')) return;
+          call('teams.delete', { id: t.id }).then(function(r){
+            if (!r || !r.ok) { fail(r, 'Could not delete the team.'); return; }
+            toast('Deleted ' + t.name + '.');
+            loadTeams();
+          }).catch(function(){});
+        });
+        tdAct.appendChild(del);
+        tr.appendChild(tdAct);
+        body.appendChild(tr);
+      });
+    }).catch(function(){});
+  }
+
+  $('reloadTeams').addEventListener('click', loadTeams);
+  $('addTeam').addEventListener('click', function(){
+    var name = prompt('New team or department name:');
+    if (!name || !name.trim()) return;
+    var cap = prompt('Maximum people off per working day:', '1');
+    if (cap === null) return;
+    call('teams.save', { team: { name: name.trim(), max: cap.trim() || '1' } }).then(function(r){
+      if (!r || !r.ok) { fail(r, 'Could not add the team.'); return; }
+      toast('Added ' + name.trim() + '.');
+      loadTeams();
+    }).catch(function(){});
+  });
+
+  /* ── Blackouts ──────────────────────────────────────── */
+  function loadBlackouts(){
+    loaded.blackouts = true;
+    call('blackouts.list').then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not load blackouts.'); return; }
+      blackouts = res.blackouts || [];
+      var body = $('boBody');
+      body.textContent = '';
+      $('boEmpty').hidden = blackouts.length > 0;
+
+      blackouts.forEach(function(b){
+        var tr = el('tr');
+        tr.appendChild(el('td', b.start));
+        tr.appendChild(el('td', b.end));
+        tr.appendChild(el('td', b.reason || '—'));
+        var td = el('td');
+        var del = el('button', 'Remove', 'btn ghost sm');
+        del.addEventListener('click', function(){
+          if (!confirm('Remove the blackout ' + b.start + ' → ' + b.end + '?\n\nStaff will be able to book those dates immediately.')) return;
+          call('blackouts.delete', { id: b.id }).then(function(r){
+            if (!r || !r.ok) { fail(r, 'Could not remove it.'); return; }
+            toast('Blackout removed.');
+            loadBlackouts();
+          }).catch(function(){});
+        });
+        td.appendChild(del);
+        tr.appendChild(td);
+        body.appendChild(tr);
+      });
+      touchSession();
+    }).catch(function(){});
+  }
+
+  $('reloadBo').addEventListener('click', loadBlackouts);
+  $('addBo').addEventListener('click', function(){
+    var s = $('boStart').value, e = $('boEnd').value;
+    if (!s || !e) { toast('Pick both a start and an end date.', true); return; }
+    if (s > e) { toast('The end date is before the start date.', true); return; }
+    call('blackouts.save', { blackout: { start:s, end:e, reason: $('boReason').value.trim() } }).then(function(r){
+      if (!r || !r.ok) { fail(r, 'Could not add the blackout.'); return; }
+      toast('Blackout added.');
+      $('boStart').value = ''; $('boEnd').value = ''; $('boReason').value = '';
+      loadBlackouts();
+    }).catch(function(){});
+  });
+
+  $('importLeave').addEventListener('click', function(){
+    if (!confirm('Import approved leave that already exists in the Shift Scheduler?\n\nSafe to run more than once — anything FairLeave pushed itself is skipped.')) return;
+    $('importLeave').disabled = true;
+    call('leave.import').then(function(res){
+      $('importLeave').disabled = false;
+      if (!res || !res.ok) { fail(res, 'Import failed.'); return; }
+      toast(res.summary || 'Import complete.');
+    }).catch(function(){ $('importLeave').disabled = false; });
+  });
+
+  /* ── Settings ───────────────────────────────────────── */
+  function loadSettings(){
+    loaded.settings = true;
+    call('settings.get').then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not load settings.'); return; }
+      settings = res.settings || [];
+      var grid = $('setGrid');
+      grid.textContent = '';
+      $('setEmpty').hidden = settings.length > 0;
+
+      settings.forEach(function(st, i){
+        var f = el('div', null, 'field');
+        var id = 'set_' + i;
+        var lab = el('label', st.key);
+        lab.setAttribute('for', id);
+        f.appendChild(lab);
+
+        var inp = document.createElement('input');
+        inp.id = id; inp.type = 'text'; inp.dataset.key = st.key;
+        if (st.secret) { inp.value = ''; inp.placeholder = 'hidden — change it in the sheet'; inp.readOnly = true; }
+        else { inp.value = st.value == null ? '' : String(st.value); }
+        f.appendChild(inp);
+
+        if (st.secret) f.appendChild(el('p', 'Credential — never shown or editable from here.', 'hint'));
+        else if (st.note) f.appendChild(el('p', st.note, 'hint'));
+        grid.appendChild(f);
+      });
+    }).catch(function(){});
+  }
+
+  $('reloadSettings').addEventListener('click', loadSettings);
+  $('saveSettings').addEventListener('click', function(){
+    var payload = [];
+    settings.forEach(function(st, i){
+      if (st.secret) return;
+      var inp = $('set_' + i);
+      if (!inp) return;
+      if (String(st.value == null ? '' : st.value) !== inp.value) payload.push({ key: st.key, value: inp.value });
+    });
+    if (!payload.length) { toast('Nothing changed.'); return; }
+    call('settings.save', { settings: payload }).then(function(r){
+      if (!r || !r.ok) { fail(r, 'Could not save settings.'); return; }
+      toast('Saved ' + payload.length + ' setting' + (payload.length === 1 ? '' : 's') + '.');
+      loadSettings();
+    }).catch(function(){});
+  });
+
+  /* ── App URLs ───────────────────────────────────────── */
+  function loadApps(){
+    loaded.apps = true;
+    call('panel.get').then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not load app URLs.'); return; }
+      apps = res.apps || {};
+      knownKeys = res.knownKeys || Object.keys(apps);
+
+      var grid = $('appGrid');
+      grid.textContent = '';
+      var allKeys = knownKeys.slice();
+      Object.keys(apps).forEach(function(k){ if (allKeys.indexOf(k) === -1) allKeys.push(k); });
+
+      allKeys.forEach(function(k){
+        var f = el('div', null, 'field');
+        var lab = el('label', APP_LABELS[k] || k);
+        lab.setAttribute('for', 'app_' + k);
+        f.appendChild(lab);
+        var inp = document.createElement('input');
+        inp.id = 'app_' + k; inp.type = 'url'; inp.dataset.key = k;
+        inp.placeholder = 'https://…';
+        inp.value = apps[k] || '';
+        f.appendChild(inp);
+        if (!apps[k]) f.appendChild(el('p', 'Blank — tile is greyed out.', 'hint'));
+        grid.appendChild(f);
+      });
+
+      $('tokLen').value = res.tokenLength ? (res.tokenLength + ' characters set') : 'not set';
+      if (res.tokenWeak) toast('The panel access code is under 12 characters — worth rotating.', true);
+      if (res.parseError) toast('Panel_Apps is not valid JSON: ' + res.parseError, true);
+      touchSession();
+    }).catch(function(){});
+  }
+
+  $('reloadApps').addEventListener('click', loadApps);
+  $('saveApps').addEventListener('click', function(){
+    var out = {};
+    document.querySelectorAll('#appGrid input').forEach(function(i){
+      var v = i.value.trim();
+      if (v) out[i.dataset.key] = v;
+    });
+    call('panel.save', { apps: out }).then(function(r){
+      if (!r || !r.ok) { fail(r, 'Could not save the URLs.'); return; }
+      toast('App URLs saved. Staff pick them up on their next page load.');
+      loadApps();
+    }).catch(function(){});
+  });
+
+  $('genTok').addEventListener('click', function(){
+    var words = 'amber|basil|cedar|dill|ember|fennel|ginger|hazel|indigo|juniper|kelp|laurel|myrtle|nutmeg|olive|pepper|quince|rosemary|sage|thyme'.split('|');
+    var pick = function(){ return words[Math.floor(Math.random() * words.length)]; };
+    var n = Math.floor(Math.random() * 90) + 10;
+    $('newTok').value = pick() + '-' + pick() + '-' + n;
+    $('newTok').focus();
+  });
+
+  $('rotateTok').addEventListener('click', function(){
+    var t = $('newTok').value.trim();
+    if (t.length < 12) { toast('Access code must be at least 12 characters.', true); return; }
+    if (!confirm('Change the panel access code to:\n\n' + t + '\n\nEvery staff device will need the new code on its next visit. Have it ready to send out.')) return;
+    call('panel.rotateToken', { token: t }).then(function(r){
+      if (!r || !r.ok) { fail(r, 'Could not rotate the code.'); return; }
+      toast(r.message || 'Access code updated.');
+      $('newTok').value = '';
+      loadApps();
+    }).catch(function(){});
+  });
+
+  /* ── Audit ──────────────────────────────────────────── */
+  function loadAudit(){
+    loaded.audit = true;
+    call('audit.list', { limit: 150 }).then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not load the audit log.'); return; }
+      var body = $('auditBody');
+      body.textContent = '';
+      var entries = res.entries || [];
+      $('auditEmpty').hidden = entries.length > 0;
+      entries.forEach(function(a){
+        var tr = el('tr');
+        tr.appendChild(el('td', a.when));
+        tr.appendChild(el('td', a.actor || '—'));
+        tr.appendChild(el('td', a.action || '—'));
+        tr.appendChild(el('td', a.details || ''));
+        body.appendChild(tr);
+      });
+      touchSession();
+    }).catch(function(){});
+  }
+
+  $('reloadAudit').addEventListener('click', loadAudit);
+  $('runDiag').addEventListener('click', function(){
+    call('diagnose').then(function(res){
+      $('diagOut').hidden = false;
+      $('diagPre').textContent = JSON.stringify(res, null, 2);
+    }).catch(function(){});
+  });
+
+  /* ── Boot ───────────────────────────────────────────── */
+  if (session) {
+    call('ping').then(function(res){
+      if (res && res.ok) start(1800);
+      else { sessionStorage.removeItem(SESSION_KEY); session = ''; }
+    }).catch(function(){ sessionStorage.removeItem(SESSION_KEY); session = ''; });
+  }
+})();
+</script>
+</body>
+</html>
