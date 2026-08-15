@@ -134,6 +134,27 @@
 
   body.busy{cursor:progress}
   @media (prefers-reduced-motion:reduce){#toast{transition:none}}
+
+  /* ── Scheduler settings ───────────────────────────────── */
+  .grouphead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    flex-wrap:wrap;margin:22px 0 10px;padding-top:16px;border-top:1px solid var(--grout)}
+  .grouphead:first-of-type{margin-top:0;padding-top:0;border-top:0}
+  .grouphead h3{font-family:'Fraunces',serif;font-size:16.5px;font-weight:600}
+  .grouphead .why{font-size:12px;color:var(--faint);line-height:1.5;flex:1;min-width:200px;text-align:right}
+  .field .unit{font-size:11.5px;color:var(--faint);margin-left:6px;font-weight:500;text-transform:none;letter-spacing:0}
+  .field.dirty input,.field.dirty select{border-color:var(--glaze-b);background:#fbf3ec}
+  .field.locked input,.field.locked select{background:#eae6dd;color:var(--faint)}
+  .field .keyname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
+    color:var(--faint);letter-spacing:0;text-transform:none;display:block;margin-top:3px}
+  .runrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px}
+  .runrow .spacer{flex:1}
+  .stat{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);
+    background:var(--plaster);border:1px solid var(--grout);border-radius:8px;padding:8px 12px}
+  .stat b{color:var(--ink);font-weight:600}
+  .savebar{position:sticky;bottom:0;background:var(--white);border-top:1px solid var(--grout);
+    margin:18px -24px -22px;padding:14px 24px;border-radius:0 0 12px 12px;
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .savebar .count{font-size:13px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -147,7 +168,7 @@
   const EXEC_URL = "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec";
   // Bump on every change to this file. Shown on screen so a stale cached copy
   // is visible at a glance instead of being mistaken for a backend problem.
-  const CONSOLE_VERSION = "1.1.1 (2026-08-14)";
+  const CONSOLE_VERSION = "1.2.0 (2026-08-15)";
 </script>
 
 <!-- ── Gate ─────────────────────────────────────────────── -->
@@ -186,6 +207,7 @@
     <button role="tab" data-tab="teams" aria-selected="false">Teams &amp; capacity</button>
     <button role="tab" data-tab="blackouts" aria-selected="false">Blackouts</button>
     <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
+    <button role="tab" data-tab="scheduler" aria-selected="false">Scheduler</button>
     <button role="tab" data-tab="apps" aria-selected="false">App URLs</button>
     <button role="tab" data-tab="audit" aria-selected="false">Audit</button>
   </div>
@@ -291,6 +313,59 @@
       <p class="note warn"><code>SCHEDULER_SHEET_ID</code> is what links this whole system to the Shift
         Scheduler. Changing it repoints every sync, import and leave push. <code>MGMT_PIN</code> is hidden
         here on purpose — change it in the Config tab of the sheet itself.</p>
+    </div>
+  </section>
+
+  <!-- SCHEDULER -->
+  <section class="panel" data-panel="scheduler">
+    <div class="card">
+      <h2>Shift Scheduler &amp; Zanna Clock settings</h2>
+      <p class="sub">Everything the Scheduler and the clock read out of their own <strong>Config</strong> tabs —
+        break rules, pay treatment, the working week, sync timing and new-employee defaults. These were
+        previously sheet-only. Written straight back to the Config tab, validated server-side, and every
+        change lands in the Audit log.</p>
+
+      <div class="bar">
+        <span class="stat" id="schedSource">Source: <b>—</b></span>
+        <span class="stat" id="schedTz">Script timezone: <b>—</b></span>
+        <button class="btn ghost sm" id="reloadSched">Reload</button>
+      </div>
+
+      <p class="note danger" id="schedNoOp" hidden>The server does not recognise
+        <code>scheduler.settings.get</code>. <strong>Admin_Scheduler.gs is not in the deployed code.</strong>
+        Add the file to the script project, then redeploy with <em>Manage deployments → ✏️ → New version</em>.
+        Nothing on this tab will save until then.</p>
+      <p class="note warn" id="schedWarn" hidden></p>
+
+      <div id="schedGroups"></div>
+      <p class="empty" id="schedEmpty" hidden>No scheduler settings loaded.</p>
+
+      <div class="savebar" id="schedSaveBar" hidden>
+        <button class="btn" id="saveSched">Save changes</button>
+        <button class="btn ghost sm" id="revertSched">Revert</button>
+        <span class="count" id="schedDirty">No changes</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Run now</h2>
+      <p class="sub">The scheduled jobs, on demand. Staff sync normally runs at
+        <strong>05:00 Dublin</strong>; Sessions rebuilds hourly only if that trigger is installed.</p>
+      <div class="runrow">
+        <button class="btn" id="runSyncStaff">Sync staff to clock</button>
+        <button class="btn ghost" id="runSessions">Rebuild sessions</button>
+        <button class="btn ghost" id="runPayroll">Rebuild payroll</button>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="schedDiag">Diagnose scheduler</button>
+      </div>
+      <div class="runrow" style="margin-top:14px">
+        <span class="stat" id="trigSync">Daily staff sync: <b>—</b></span>
+        <span class="stat" id="trigSessions">Hourly sessions rebuild: <b>—</b></span>
+      </div>
+      <div id="schedDiagOut" hidden><pre id="schedDiagPre"></pre></div>
+      <p class="note warn">Rebuilds are safe to re-run — Sessions and Payroll are derived from the
+        append-only Events tab, so nothing is lost. A staff sync only moves people who are
+        <code>Active = TRUE</code>.</p>
     </div>
   </section>
 
@@ -570,7 +645,7 @@
 
   /* ── Tabs ───────────────────────────────────────────── */
   var LOADERS = { employees: loadEmployees, teams: loadTeams, blackouts: loadBlackouts,
-                  settings: loadSettings, apps: loadApps, audit: loadAudit };
+                  settings: loadSettings, scheduler: loadScheduler, apps: loadApps, audit: loadAudit };
   var loaded = {};
 
   document.querySelectorAll('.tabs button').forEach(function(b){
@@ -921,6 +996,464 @@
       if (!r || !r.ok) { fail(r, 'Could not save settings.'); return; }
       toast('Saved ' + payload.length + ' setting' + (payload.length === 1 ? '' : 's') + '.');
       loadSettings();
+    }).catch(function(){});
+  });
+
+  /* ── Scheduler settings ─────────────────────────────── */
+  // The catalogue is the console's opinion about the Scheduler/Clock Config tab:
+  // what each key means, what shape a legal value has, and what breaks if it is
+  // wrong. Anything found in Config that is NOT listed here still shows up, as a
+  // plain text field under "Other keys" — the sheet is never the loser to this list.
+  var SCHED_GROUPS = [
+    { id:'breaks', title:'Break types',
+      why:'Every key beginning BREAK_ becomes a button on the kiosk. Minutes are the allowance before the break counts as an overrun.',
+      keys:[
+        { key:'BREAK_15', label:'Short break', type:'number', unit:'minutes', min:0, max:240, def:'15',
+          hint:'☕ The standard short break offered on the kiosk.' },
+        { key:'BREAK_30', label:'Meal break', type:'number', unit:'minutes', min:0, max:240, def:'30',
+          hint:'🍽 The standard meal break.' },
+        { key:'BREAK_COMFORT', label:'Comfort break', type:'number', unit:'minutes', min:0, max:240, def:'0',
+          hint:'🚻 Set 0 for untimed — recorded, but never flagged as an overrun.' }
+      ] },
+
+    { id:'pay', title:'Pay treatment',
+      why:'How break time is deducted when Payroll is rebuilt. Changing this changes what people are paid — it does not rewrite history until you rebuild.',
+      keys:[
+        { key:'PAY_BREAKS', label:'Break pay mode', type:'select', def:'unpaid',
+          options:[
+            { value:'unpaid',    label:'unpaid — all break time deducted' },
+            { value:'paid',      label:'paid — no deduction' },
+            { value:'threshold', label:'threshold — first N minutes of each break paid' }
+          ],
+          hint:'The only three values Payroll understands. Anything else and payroll totals come out as zero.',
+          danger:true,
+          confirm:'Change how breaks are paid?\n\nThis changes net paid hours for everyone the next time payroll is rebuilt.' },
+        { key:'PAID_BREAK_MAX_MINS', label:'Paid minutes per break', type:'number', unit:'minutes', min:0, max:240, def:'0',
+          hint:'Only used in threshold mode. A 30-minute break with this at 10 deducts 20.',
+          dependsOn:{ key:'PAY_BREAKS', value:'threshold' } }
+      ] },
+
+    { id:'week', title:'Working week & sync',
+      why:'Which days count as working days, and when the overnight staff sync runs.',
+      keys:[
+        { key:'WORK_SATURDAY', label:'Saturday is a working day', type:'bool', def:'TRUE',
+          hint:'Mon–Sat is the locked default for this business. FairLeave counts capacity and entitlement per WORKING day, so turning this off changes how every leave request is costed.',
+          danger:true,
+          confirm:'Turn Saturday off as a working day?\n\nThis is a locked decision for Zanna Cookhouse (Mon–Sat). FairLeave will stop counting Saturdays against entitlement and against team capacity.' },
+        { key:'SYNC_HOUR', label:'Daily staff sync hour', type:'number', unit:'0–23, Dublin', min:0, max:23, def:'5',
+          hint:'The hour the Scheduler roster is pushed to the clock. 5 = 05:00. Changing this reinstalls the trigger.' },
+        { key:'NO_SATURDAY_HONOURED', label:'Honour per-person NoSaturday', type:'bool', def:'TRUE',
+          hint:'When on, a person with NoSaturday = TRUE is exempt even while the business works Saturdays.',
+          unread:true }
+      ] },
+
+    { id:'defaults', title:'New-employee defaults',
+      why:'What the Add employee form and the auto-numbering use when a field is left blank. Existing people are never touched.',
+      keys:[
+        { key:'DEFAULT_CONTRACTED_DAYS', label:'Contracted days', type:'number', unit:'per week', min:0, max:7, def:'5',
+          hint:'Prefilled for a new starter. 5 = full time here.' , unread:true },
+        { key:'DEFAULT_ANNUAL_LEAVE_DAYS', label:'Annual leave entitlement', type:'number', unit:'days', min:0, max:60, def:'28',
+          hint:'Prefilled for a new starter, and used by FairLeave as the opening balance.' , unread:true },
+        { key:'DEFAULT_NO_SATURDAY', label:'Default NoSaturday', type:'bool', def:'FALSE',
+          hint:'Whether a new starter is Saturday-exempt unless you say otherwise.' , unread:true },
+        { key:'EMPLOYEE_ID_PREFIX', label:'Employee ID prefix', type:'text', maxlength:4, def:'E',
+          hint:'The letter part of E015. Letters only — hyphens and spaces break the clock’s name match.',
+          pattern:/^[A-Za-z]{1,4}$/, patternMsg:'Prefix must be 1–4 letters, no digits, spaces or hyphens.' , unread:true },
+        { key:'EMPLOYEE_ID_DIGITS', label:'Employee ID digits', type:'number', unit:'digits', min:1, max:6, def:'3',
+          hint:'3 gives E015. Auto-numbering pads to this width.' , unread:true }
+      ] },
+
+    { id:'links', title:'System links',
+      why:'The IDs that wire the three systems together. Wrong here and syncs fail silently — run the diagnostic below before assuming the code is broken.',
+      keys:[
+        { key:'SCHEDULER_SHEET_ID', label:'Shift Scheduler sheet ID', type:'text', maxlength:80, def:'',
+          hint:'The long ID out of the Scheduler sheet URL — the ID only, not the whole URL. The clock and FairLeave each keep their own copy of this; the server flags it above if the two disagree.',
+          danger:true,
+          pattern:/^[A-Za-z0-9_-]{20,}$/,
+          patternMsg:'That does not look like a sheet ID. Paste the part of the URL between /d/ and /edit.',
+          confirm:'Repoint SCHEDULER_SHEET_ID?\n\nEvery sync, import and leave push follows this ID. If it is wrong, staff quietly stop syncing to the clock.' },
+        { key:'CLOCK_SHEET_ID', label:'Zanna Clock sheet ID', type:'text', maxlength:80, def:'',
+          hint:'Where Events, Sessions and Payroll live. Leave blank if the clock is this same spreadsheet.',
+          pattern:/^[A-Za-z0-9_-]{20,}$/,
+          patternMsg:'That does not look like a sheet ID.' }
+      ] }
+  ];
+
+  var schedValues = {}, schedOriginal = {}, schedMeta = {}, schedExtra = [], schedReady = false;
+
+  function schedNorm(v){ return v == null ? '' : String(v).trim(); }
+
+  function loadScheduler(){
+    loaded.scheduler = true;
+    call('scheduler.settings.get').then(function(res){
+      var unknown = res && res.error &&
+        /unknown[_ ](op|action)|unsupported[_ ]op|not[_ ]implemented|bad[_ ]op/i.test(String(res.error));
+      $('schedNoOp').hidden = !unknown;
+      if (!res || !res.ok) {
+        schedReady = false;
+        if (!unknown) fail(res, 'Could not load the scheduler settings.');
+        $('schedEmpty').hidden = false;
+        $('schedGroups').textContent = '';
+        $('schedSaveBar').hidden = true;
+        return;
+      }
+      schedReady = true;
+      $('schedEmpty').hidden = true;
+      schedValues = {};
+      schedMeta = res.meta || {};
+      (res.settings || []).forEach(function(s){
+        schedValues[s.key] = s.secret ? '' : schedNorm(s.value);
+        schedMeta[s.key] = { secret: !!s.secret, note: s.note || '',
+                             origin: s.origin || '', shared: !!s.shared, isNew: !!s.isNew };
+      });
+      schedOriginal = Object.assign({}, schedValues);
+
+      $('schedSource').querySelector('b').textContent = res.source || 'Scheduler Config tab';
+      $('schedTz').querySelector('b').textContent = res.timezone || 'unknown';
+      if (res.timezone && res.timezone !== 'Europe/Dublin') {
+        showSchedWarn('This script project’s timezone is ' + res.timezone + ', not Europe/Dublin — times will be off. Fix it in Apps Script → Project Settings. Note this is FairLeave’s timezone; if the clock runs in its own script project, check that one separately.');
+      } else if (res.warning) {
+        showSchedWarn(res.warning);
+      } else {
+        $('schedWarn').hidden = true;
+      }
+      renderTriggers(res.triggers || {});
+      renderScheduler();
+    }).catch(function(){});
+  }
+
+  function showSchedWarn(msg){
+    var n = $('schedWarn');
+    n.textContent = msg;
+    n.hidden = false;
+  }
+
+  function renderTriggers(t){
+    var pairs = [ ['trigSync', 'dailySync', 'installSyncTrigger', 'daily staff sync'],
+                  ['trigSessions', 'hourlySessions', 'installSessionsTrigger', 'hourly sessions rebuild'] ];
+    pairs.forEach(function(p){
+      var host = $(p[0]);
+      var b = host.querySelector('b');
+      var raw = t[p[1]];
+      var on = raw === true;
+      // undefined ≠ false: the clock may be a separate script project, whose
+      // triggers this one genuinely cannot see. Saying "not installed" there
+      // would send someone off installing a second, duplicate trigger.
+      b.textContent = raw === undefined ? 'not visible from here' : (on ? 'installed' : 'not installed');
+      var old = host.querySelector('button');
+      if (old) old.remove();
+      if (raw === false) {
+        var btn = el('button', 'Install', 'btn sm');
+        btn.style.marginLeft = '4px';
+        btn.addEventListener('click', function(){ runSchedJob(p[2], 'Installing the ' + p[3] + '…', btn); });
+        host.appendChild(btn);
+      }
+    });
+  }
+
+  function schedFindSpec(key){
+    for (var i = 0; i < SCHED_GROUPS.length; i++) {
+      var ks = SCHED_GROUPS[i].keys;
+      for (var j = 0; j < ks.length; j++) if (ks[j].key === key) return ks[j];
+    }
+    return null;
+  }
+
+  function renderScheduler(){
+    var host = $('schedGroups');
+    host.textContent = '';
+
+    // Keys present in the sheet that the catalogue has never heard of. These are
+    // shown rather than dropped — a key we do not recognise is still a key that
+    // something reads.
+    var known = {};
+    SCHED_GROUPS.forEach(function(g){ g.keys.forEach(function(k){ known[k.key] = 1; }); });
+    schedExtra = Object.keys(schedValues).filter(function(k){
+      return !known[k] && k.indexOf('BREAK_') !== 0;
+    }).sort();
+    var customBreaks = Object.keys(schedValues).filter(function(k){
+      return k.indexOf('BREAK_') === 0 && !known[k];
+    }).sort();
+
+    SCHED_GROUPS.forEach(function(g){
+      var head = el('div', null, 'grouphead');
+      head.appendChild(el('h3', g.title));
+      head.appendChild(el('p', g.why, 'why'));
+      host.appendChild(head);
+
+      var grid = el('div', null, 'grid');
+      var keys = g.keys.slice();
+      if (g.id === 'breaks') {
+        customBreaks.forEach(function(k){
+          keys.push({ key:k, label:k.replace(/^BREAK_/, '').replace(/_/g, ' ').toLowerCase(),
+                      type:'number', unit:'minutes', min:0, max:240, def:'0',
+                      hint:'Custom break type added from this console.' });
+        });
+      }
+      keys.forEach(function(spec){ grid.appendChild(schedField(spec)); });
+      host.appendChild(grid);
+
+      if (g.id === 'breaks') {
+        var row = el('div', null, 'runrow');
+        var add = el('button', '+ Add break type', 'btn ghost sm');
+        add.addEventListener('click', addBreakType);
+        row.appendChild(add);
+        host.appendChild(row);
+      }
+    });
+
+    if (schedExtra.length) {
+      var head2 = el('div', null, 'grouphead');
+      head2.appendChild(el('h3', 'Other keys in Config'));
+      head2.appendChild(el('p', 'Found in the sheet but not part of the known catalogue — shown as-is so nothing is hidden from you. Credential-shaped keys stay masked.', 'why'));
+      host.appendChild(head2);
+      var grid2 = el('div', null, 'grid');
+      schedExtra.forEach(function(k){
+        grid2.appendChild(schedField({ key:k, label:k, type:'text', maxlength:200, def:'' }));
+      });
+      host.appendChild(grid2);
+    }
+
+    applyDependencies();
+    updateDirty();
+  }
+
+  function schedField(spec){
+    var f = el('div', null, 'field');
+    f.dataset.key = spec.key;
+    var id = 'sched_' + spec.key;
+    var meta = schedMeta[spec.key] || {};
+
+    var lab = el('label', spec.label || spec.key);
+    lab.setAttribute('for', id);
+    if (spec.unit) lab.appendChild(el('span', '(' + spec.unit + ')', 'unit'));
+    if ((spec.label || '') !== spec.key) lab.appendChild(el('span', spec.key, 'keyname'));
+    f.appendChild(lab);
+
+    var inp;
+    if (spec.type === 'select' || spec.type === 'bool') {
+      inp = document.createElement('select');
+      var opts = spec.type === 'bool'
+        ? [{ value:'TRUE', label:'Yes' }, { value:'FALSE', label:'No' }]
+        : spec.options.slice();
+      var stored = schedNorm(schedValues[spec.key]);
+      // Blank must read as blank. Defaulting the dropdown to "unpaid" when the
+      // sheet has no PAY_BREAKS row at all shows a setting that is not there —
+      // and payroll returns zero hours for exactly that reason.
+      if (!stored) opts.unshift({ value:'', label:'— not set' + (spec.def ? ' (code falls back to ' + spec.def + ')' : '') + ' —' });
+      opts.forEach(function(o){
+        var op = document.createElement('option');
+        op.value = o.value; op.textContent = o.label;
+        inp.appendChild(op);
+      });
+      var cur = stored;
+      // Only coerce a value that is unambiguously a boolean. Anything else stays
+      // visible as itself — silent coercion is how a broken Config row hides for
+      // months while the UI cheerfully reports "No".
+      if (spec.type === 'bool' && /^(true|yes|y|1|false|no|n|0)$/i.test(cur)) {
+        cur = /^(true|yes|y|1)$/i.test(cur) ? 'TRUE' : 'FALSE';
+      }
+      if (!Array.prototype.some.call(inp.options, function(o){ return o.value === cur; })) {
+        var ghost = document.createElement('option');
+        ghost.value = cur;
+        ghost.textContent = cur + '  ← not a recognised value';
+        inp.appendChild(ghost);
+      }
+      inp.value = cur;
+    } else {
+      inp = document.createElement('input');
+      inp.type = spec.type === 'number' ? 'number' : 'text';
+      if (spec.type === 'number') {
+        if (spec.min != null) inp.min = String(spec.min);
+        if (spec.max != null) inp.max = String(spec.max);
+        inp.step = '1';
+      }
+      if (spec.maxlength) inp.maxLength = spec.maxlength;
+      inp.value = schedNorm(schedValues[spec.key]);
+      if (!inp.value && spec.def) inp.placeholder = spec.def + '  (default)';
+    }
+
+    inp.id = id;
+    inp.dataset.key = spec.key;
+    if (meta.secret) { inp.value = ''; inp.readOnly = true; inp.disabled = true;
+      inp.placeholder = 'hidden — change it in the sheet'; f.classList.add('locked'); }
+    inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', function(){
+      schedValues[spec.key] = inp.value;
+      if (spec.key === 'PAY_BREAKS') applyDependencies();
+      updateDirty();
+    });
+    f.appendChild(inp);
+
+    var hint = meta.secret ? 'Credential — never shown or editable from here.'
+             : (spec.hint || meta.note || '');
+    if (hint) f.appendChild(el('p', hint, 'hint'));
+    // Which sheet this row actually lives in. Without it, "I changed it and
+    // nothing happened" is unanswerable.
+    if (meta.origin) {
+      f.appendChild(el('p', (meta.isNew ? 'Not set in any sheet yet — saving creates the row in the '
+                                        : 'Stored in the ') + meta.origin + ' Config tab' +
+        (meta.shared ? ' — the same row the Settings tab edits.' : '.'), 'hint'));
+    }
+    if (spec.danger) f.appendChild(el('p', '⚠ Changing this affects live behaviour — you will be asked to confirm.', 'hint'));
+    // The console can write any key. It cannot make the Scheduler read one.
+    // A field that looks live but is inert is worse than no field at all —
+    // someone sets it, trusts it, and never finds out why nothing changed.
+    if (spec.unread) {
+      var u = el('p', '⚑ Stored, but nothing reads it yet — it takes effect once the Scheduler code is updated to use this key.', 'hint');
+      u.style.color = 'var(--glaze-b)';
+      f.appendChild(u);
+    }
+    return f;
+  }
+
+  function applyDependencies(){
+    SCHED_GROUPS.forEach(function(g){
+      g.keys.forEach(function(spec){
+        if (!spec.dependsOn) return;
+        var f = document.querySelector('#schedGroups .field[data-key="' + spec.key + '"]');
+        if (!f) return;
+        var inp = f.querySelector('input,select');
+        var on = schedNorm(schedValues[spec.dependsOn.key] ||
+                 (schedFindSpec(spec.dependsOn.key) || {}).def) === spec.dependsOn.value;
+        // Left visible but inert: hiding it makes people think the setting vanished.
+        if (inp) inp.disabled = !on;
+        f.classList.toggle('locked', !on);
+      });
+    });
+  }
+
+  function schedDiff(){
+    var out = [];
+    Object.keys(schedValues).forEach(function(k){
+      if ((schedMeta[k] || {}).secret) return;
+      if (schedNorm(schedValues[k]) !== schedNorm(schedOriginal[k])) {
+        out.push({ key:k, value: schedNorm(schedValues[k]) });
+      }
+    });
+    return out;
+  }
+
+  function updateDirty(){
+    var d = schedDiff();
+    $('schedSaveBar').hidden = !schedReady;
+    $('schedDirty').textContent = d.length
+      ? d.length + ' unsaved change' + (d.length === 1 ? '' : 's') + ': ' + d.map(function(x){ return x.key; }).join(', ')
+      : 'No changes';
+    $('saveSched').disabled = d.length === 0;
+    document.querySelectorAll('#schedGroups .field').forEach(function(f){
+      var k = f.dataset.key;
+      f.classList.toggle('dirty', schedNorm(schedValues[k]) !== schedNorm(schedOriginal[k]));
+    });
+  }
+
+  function schedValidate(d){
+    var bad = [];
+    d.forEach(function(c){
+      var spec = schedFindSpec(c.key);
+      if (!spec) return;
+      if (spec.type === 'number' && c.value !== '') {
+        var n = Number(c.value);
+        if (!isFinite(n) || n % 1 !== 0) bad.push(spec.label + ' must be a whole number.');
+        else if (spec.min != null && n < spec.min) bad.push(spec.label + ' cannot be below ' + spec.min + '.');
+        else if (spec.max != null && n > spec.max) bad.push(spec.label + ' cannot be above ' + spec.max + '.');
+      }
+      if (spec.type === 'select' && c.value &&
+          !spec.options.some(function(o){ return o.value === c.value; })) {
+        bad.push(spec.label + ': "' + c.value + '" is not one of ' +
+                 spec.options.map(function(o){ return o.value; }).join(', ') + '.');
+      }
+      if (spec.pattern && c.value && !spec.pattern.test(c.value)) bad.push(spec.patternMsg || (spec.label + ' is not in the expected format.'));
+    });
+    // Cross-field: threshold mode with nothing paid is almost always a half-done edit.
+    var mode = schedNorm(schedValues.PAY_BREAKS);
+    var paid = schedNorm(schedValues.PAID_BREAK_MAX_MINS);
+    if (mode === 'threshold' && (paid === '' || Number(paid) === 0)) {
+      bad.push('Threshold mode with 0 paid minutes behaves exactly like "unpaid" — set the paid minutes, or pick unpaid.');
+    }
+    return bad;
+  }
+
+  $('reloadSched').addEventListener('click', loadScheduler);
+  $('revertSched').addEventListener('click', function(){
+    schedValues = Object.assign({}, schedOriginal);
+    renderScheduler();
+    toast('Reverted to the saved values.');
+  });
+
+  $('saveSched').addEventListener('click', function(){
+    var d = schedDiff();
+    if (!d.length) { toast('Nothing changed.'); return; }
+
+    var bad = schedValidate(d);
+    if (bad.length) { toast(bad[0], true); return; }
+
+    // One confirm per dangerous key, in the order they appear — a single blanket
+    // "are you sure?" trains people to click through it.
+    for (var i = 0; i < d.length; i++) {
+      var spec = schedFindSpec(d[i].key);
+      if (spec && spec.confirm && !confirm(spec.confirm + '\n\nNew value: ' + (d[i].value || '(blank)'))) return;
+    }
+
+    $('saveSched').disabled = true;
+    call('scheduler.settings.save', { settings: d }).then(function(r){
+      $('saveSched').disabled = false;
+      if (!r || !r.ok) { fail(r, 'Could not save the scheduler settings.'); return; }
+      var saved = typeof r.saved === 'number' ? r.saved : d.length;
+      var msg = 'Saved ' + saved + ' setting' + (saved === 1 ? '' : 's') + '.';
+      if (r.triggerReinstalled) msg += ' Sync trigger reinstalled for ' + r.triggerReinstalled + '.';
+      if (r.rebuildNeeded) msg += ' Rebuild payroll for this to affect paid hours.';
+      // A partial save that reports itself as a clean success is worse than a
+      // failure — the rejected keys look saved until someone checks the sheet.
+      if (r.rejected && r.rejected.length) {
+        toast(msg + ' NOT saved: ' + r.rejected.join('; '), true);
+      } else {
+        toast(msg);
+      }
+      loadScheduler();
+    }).catch(function(){ $('saveSched').disabled = false; });
+  });
+
+  function addBreakType(){
+    var name = prompt('Name for the new break type (letters and numbers, e.g. SMOKE or 45):');
+    if (!name || !name.trim()) return;
+    var key = 'BREAK_' + name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+    if (key === 'BREAK_') { toast('That name has no usable characters.', true); return; }
+    if (Object.prototype.hasOwnProperty.call(schedValues, key)) { toast(key + ' already exists.', true); return; }
+    var mins = prompt('Minutes allowed for ' + key + ' (0 = untimed):', '15');
+    if (mins === null) return;
+    mins = mins.trim();
+    if (!/^\d{1,3}$/.test(mins)) { toast('Minutes must be a whole number.', true); return; }
+    schedValues[key] = mins;
+    renderScheduler();
+    toast(key + ' added — press Save changes to write it to the sheet.');
+  }
+
+  /* Run-now jobs */
+  function runSchedJob(job, busyMsg, btn){
+    if (btn) btn.disabled = true;
+    toast(busyMsg);
+    call('scheduler.action.run', { job: job }).then(function(r){
+      if (btn) btn.disabled = false;
+      if (!r || !r.ok) { fail(r, 'That job did not complete.'); return; }
+      toast(r.summary || 'Done.');
+      if (r.triggers) renderTriggers(r.triggers);
+    }).catch(function(){ if (btn) btn.disabled = false; });
+  }
+
+  $('runSyncStaff').addEventListener('click', function(){
+    runSchedJob('syncStaff', 'Syncing staff to the clock…', $('runSyncStaff'));
+  });
+  $('runSessions').addEventListener('click', function(){
+    runSchedJob('rebuildSessions', 'Rebuilding sessions…', $('runSessions'));
+  });
+  $('runPayroll').addEventListener('click', function(){
+    if (!confirm('Rebuild payroll now?\n\nNet paid hours are recalculated using the current break pay mode.')) return;
+    runSchedJob('rebuildPayroll', 'Rebuilding payroll…', $('runPayroll'));
+  });
+  $('schedDiag').addEventListener('click', function(){
+    call('scheduler.diagnose').then(function(res){
+      $('schedDiagOut').hidden = false;
+      $('schedDiagPre').textContent = JSON.stringify(res, null, 2);
     }).catch(function(){});
   });
 
