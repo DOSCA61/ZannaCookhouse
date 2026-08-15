@@ -51,6 +51,23 @@
          text-transform: uppercase; letter-spacing: .5px; }
   .card.offsite { outline: 3px dashed var(--amber); outline-offset: -3px; background: #26221a; }
   .empty { text-align: center; color: var(--muted); font-size: 1.4rem; padding: 60px 0; }
+  /* v1.2 — the staff list shows who is already in, so a name turns green the
+     moment that person is clocked in. Colour AND a bar: colour alone is not
+     enough for anyone who cannot distinguish green from grey. */
+  .btn.on-shift { color: var(--green);  box-shadow: inset 5px 0 0 var(--green); }
+  .btn.on-break { color: var(--amber);  box-shadow: inset 5px 0 0 var(--amber); }
+  .btn.on-shift::after { content: ' \2713'; font-weight: 800; }
+  .btn.on-break::after { content: ' \00B7 on break'; font-size: .8rem; font-weight: 600; }
+  /* The person who just clocked in gets a brief solid flash, so in a queue you
+     can see your own confirmation from a step back. */
+  .btn.flash { animation: flashIn 2.4s ease-out 1; }
+  @keyframes flashIn {
+    0%, 45% { background: var(--green); color: #08321c; box-shadow: none; }
+    100%    { background: var(--card2); }
+  }
+  .bigok { text-align:center; font-size: 1.6rem; font-weight: 800; color: var(--green);
+           padding: 26px 0 6px; }
+  .bigok small { display:block; font-size: 1rem; font-weight: 600; color: var(--muted); margin-top: 6px; }
   /* Emergency */
   .emg-count { text-align: center; font-size: 4rem; font-weight: 800; color: var(--red); }
   .emg-sub { text-align: center; color: var(--muted); margin-bottom: 18px; }
@@ -91,7 +108,7 @@
     <div id="kActions" class="hidden">
       <h2 id="actTitle" style="text-align:center"></h2>
       <div id="actButtons"></div>
-      <button class="btn ghost" onclick="backToStaff()">Done</button>
+      <button class="btn ghost" id="actDone" onclick="backToStaff()">Done</button>
     </div>
 
     <div id="kPremises" class="hidden">
@@ -121,12 +138,19 @@
     <button class="btn primary" onclick="refreshEmergency()">🔄 Refresh now</button>
   </section>
 </main>
-<footer>Zanna Clock v1.1 · Quantum Build AI</footer>
+<footer>Zanna Clock v1.2 · Quantum Build AI</footer>
 
 <script>
 /* ------------------------------------------------------------------ config */
 const API_URL = 'https://script.google.com/macros/s/AKfycbyJDs7Dh8UDakGcczmSdpcWBCDacKsXhIh8ZALlijaZE413VHO--ZCS7A4FaJDnYtcm/exec';
 const POLL_MS = 15000;
+
+/* v1.2 — morning queue settings.
+   AUTO_SUBMIT_PIN: send as soon as the 4th digit is tapped, instead of making
+   everyone reach for OK. Set to false to put the OK button back in charge.
+   AUTO_EXIT_MS:    how long "Clocked In" stays up before the list returns. */
+const AUTO_SUBMIT_PIN = true;
+const AUTO_EXIT_MS    = 1400;
 
 /* URL: #t=<deviceToken>&v=kiosk|canteen|office|emergency */
 const params = Object.fromEntries(new URLSearchParams(location.hash.slice(1)));
@@ -135,6 +159,8 @@ const VIEW  = (params.v || 'kiosk').toLowerCase();
 
 let session = { name: '', pin: '', state: null, settingPin: false };
 let pinBuf = '', pendingBreak = '', lastPollOk = 0;
+let staffCache = [], justClockedIn = '', justClockedAt = 0;   // v1.2
+const FLASH_MS = 2600;   // must be >= the flashIn animation in the stylesheet
 let amberPct = 80, serverOffsetMs = 0;
 let breakDefs = [];                      // v1.1: break types come from Config via the server
 const loadedAt = Date.now();
@@ -187,26 +213,57 @@ function fatal(t) { const el = document.getElementById('setupErr');
   el.textContent = t; el.classList.remove('hidden'); }
 
 /* ------------------------------------------------------------------ kiosk */
-async function loadStaff() {
+/**
+ * v1.2 — silent refreshes.
+ *
+ * The list used to be blanked to "Loading…" on every return to the main screen.
+ * At 07:00 that is dead time between one person finishing and the next being
+ * able to tap. When there is already a cached list we redraw it immediately and
+ * refresh underneath, so the grid is never empty.
+ */
+async function loadStaff(silent) {
   kmsg('');
   const grid = document.getElementById('staffGrid');
-  grid.innerHTML = '<button class="btn" disabled>Loading…</button>';
+  if (!silent || !staffCache.length) {
+    grid.innerHTML = '<button class="btn" disabled>Loading…</button>';
+  }
   try {
     const r = await api('getStaff');
     if (!r.ok) return kmsg(r.error, true);
     breakDefs = r.breaks || [];
-    grid.innerHTML = '';
-    r.staff.forEach(s => {
-      const b = document.createElement('button');
-      b.className = 'btn'; b.textContent = s.name;
-      b.onclick = () => pickStaff(s);
-      grid.appendChild(b);
-    });
-    if (!r.staff.length) kmsg('No staff yet — management: run the Scheduler sync.', true);
-  } catch (e) { kmsg('Connection problem — try again.', true); }
+    staffCache = r.staff || [];
+    renderStaff();
+    if (!staffCache.length) kmsg('No staff yet — management: run the Scheduler sync.', true);
+  } catch (e) {
+    // A failed refresh must not wipe a list we can still use.
+    if (staffCache.length) { renderStaff(); kmsg('Offline — list may be out of date.', true); }
+    else kmsg('Connection problem — try again.', true);
+  }
+}
+
+function renderStaff() {
+  const grid = document.getElementById('staffGrid');
+  grid.innerHTML = '';
+  staffCache.forEach(s => {
+    const b = document.createElement('button');
+    // status arrives from getStaff (server v1.8.0). An older backend sends no
+    // status field at all, in which case every name simply renders plain.
+    const cls = s.status === 'WORKING' ? ' on-shift'
+              : s.status === 'ON_BREAK' ? ' on-break' : '';
+    // The flash is time-boxed, NOT cleared on first render. backToStaff draws
+    // from cache and then refreshes underneath, so clearing it on render meant
+    // the second draw wiped the confirmation a few milliseconds after it
+    // appeared — nobody ever saw it.
+    const flashing = s.name === justClockedIn && (Date.now() - justClockedAt) < FLASH_MS;
+    b.className = 'btn' + cls + (flashing ? ' flash' : '');
+    b.textContent = s.name;
+    b.onclick = () => pickStaff(s);
+    grid.appendChild(b);
+  });
 }
 
 function pickStaff(s) {
+  justClockedIn = '';        // the confirmation belonged to whoever went before
   session = { name: s.name, pin: '', state: null, settingPin: !s.hasPin };
   pinBuf = '';
   document.getElementById('pinTitle').textContent = session.settingPin
@@ -231,6 +288,9 @@ function pinKey(k) {
   else if (k === 'OK') return submitPin();
   else if (pinBuf.length < 4) pinBuf += k;
   renderDots();
+  // Four digits is the whole PIN — there is nothing more to say. Reaching for
+  // OK is a tap per person per morning that buys nothing.
+  if (AUTO_SUBMIT_PIN && pinBuf.length === 4 && k !== '⌫') submitPin();
 }
 function renderDots() {
   document.getElementById('pinDots').textContent =
@@ -247,12 +307,46 @@ async function submitPin() {
       kmsg('PIN saved ✓');
     }
     session.pin = pinBuf;
-    const r2 = await api('startSession', { name: session.name, pin: session.pin });
+
+    /* v1.2 — ONE round trip.
+       startShift checks the PIN and, if this is the first clock-in of the day,
+       records it in the same request. Previously this was startSession followed
+       by a second call from the action screen: two waits and two taps each, for
+       fifteen people arriving together.
+       If it is NOT a shift start the server writes nothing and we fall through
+       to the normal action screen — same single round trip either way. */
+    const r2 = await api('startShift', { name: session.name, pin: session.pin });
     if (!r2.ok) return kmsg(r2.error || 'PIN check failed', true);
     session.state = r2.state;
+
+    if (r2.autoClockedIn) return clockedInAndOut(r2);
     kmsg('');
     showActions();
   } catch (e) { kmsg('Connection problem — try again.', true); }
+}
+
+/**
+ * Shift started: confirm it and get out of the way. No action screen, no Done
+ * button — the next person can tap while this one is still reading.
+ */
+function clockedInAndOut(r) {
+  const who = (r && r.name) || session.name;
+  kmsg('');
+  document.getElementById('actTitle').textContent = '';
+  document.getElementById('actButtons').innerHTML =
+    '<div class="bigok">\u2705 Clocked In<small>' + esc(who) + ' \u00B7 ' +
+    new Date().toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' }) +
+    '</small></div>';
+  document.getElementById('actDone').classList.add('hidden');   // nothing to tap
+  swapKiosk('kActions');
+
+  // Update the cached row now rather than waiting for the refresh, so the name
+  // is already green the instant the list comes back.
+  const row = staffCache.find(p => p.name === who);
+  if (row) { row.status = 'WORKING'; row.shiftsToday = (row.shiftsToday || 0) + 1; }
+  justClockedIn = who; justClockedAt = Date.now() + AUTO_EXIT_MS;
+
+  setTimeout(backToStaff, AUTO_EXIT_MS);
 }
 
 function showActions() {
@@ -273,6 +367,7 @@ function showActions() {
     add('🔴 Clock OUT — end shift', 'red', () => doEvent('clockOut'));
   }
   if (st.status === 'ON_BREAK') add('✅ End my break', 'green', () => doEvent('endBreak'));
+  document.getElementById('actDone').classList.remove('hidden');
   swapKiosk('kActions');
 }
 function friendly(st) {
@@ -306,7 +401,9 @@ async function doEvent(action, extra = {}) {
 function swapKiosk(id) { ['kStaff','kPin','kActions','kPremises'].forEach(s =>
   document.getElementById(s).classList.toggle('hidden', s !== id)); }
 function backToStaff() { session = { name:'', pin:'', state:null, settingPin:false };
-  pinBuf=''; kmsg(''); swapKiosk('kStaff'); loadStaff(); }
+  pinBuf=''; kmsg(''); swapKiosk('kStaff');
+  renderStaff();          // draw from cache first — never an empty grid
+  loadStaff(true); }      // then refresh underneath
 function kmsg(t, err) { document.getElementById('kMsg').innerHTML =
   t ? '<div class="msg ' + (err ? 'err' : 'ok') + '">' + t + '</div>' : ''; }
 
