@@ -168,7 +168,7 @@
   const EXEC_URL = "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec";
   // Bump on every change to this file. Shown on screen so a stale cached copy
   // is visible at a glance instead of being mistaken for a backend problem.
-  const CONSOLE_VERSION = "1.2.0 (2026-08-15)";
+  const CONSOLE_VERSION = "1.2.1 (2026-08-15)";
 </script>
 
 <!-- ── Gate ─────────────────────────────────────────────── -->
@@ -488,7 +488,8 @@
   var APP_LABELS = {
     fairleave:'FairLeave', scheduler:'Shift Scheduler', lms:'Training LMS (QuantumBuild)',
     clockKiosk:'Zanna Clock — Kiosk', clockCanteen:'Clock — Canteen Display',
-    clockOffice:'Clock — Office Display', clockEmergency:'Emergency Register'
+    clockOffice:'Clock — Office Display', clockEmergency:'Emergency Register',
+    payroll:'Payroll (management)'
   };
 
   var $ = function(id){ return document.getElementById(id); };
@@ -509,6 +510,15 @@
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (data && data.error === 'session_expired') { signOut('Session expired — sign in again.'); throw new Error('session_expired'); }
+        // Learn the backend version from ANY response that carries one, not just
+        // the sign-in. Resuming a saved session skips sign-in entirely, so the
+        // footer used to read "server not reached" on a perfectly healthy
+        // backend — which is exactly the wrong thing to tell someone who is
+        // using that footer to check whether their deploy landed.
+        if (data && data.version && data.version !== backendVersion) {
+          backendVersion = data.version;
+          showVersions();
+        }
         // The server extends the session on every call, so the visible countdown
         // has to follow suit — otherwise a busy tab logs itself out mid-edit.
         touchSession();
