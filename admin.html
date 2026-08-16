@@ -168,7 +168,7 @@
   const EXEC_URL = "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec";
   // Bump on every change to this file. Shown on screen so a stale cached copy
   // is visible at a glance instead of being mistaken for a backend problem.
-  const CONSOLE_VERSION = "1.2.1 (2026-08-15)";
+  const CONSOLE_VERSION = "1.3.0 (2026-08-16)";
 </script>
 
 <!-- ── Gate ─────────────────────────────────────────────── -->
@@ -219,12 +219,16 @@
       <p class="sub">The <strong>Shift Scheduler is the source of truth</strong> for people. Saving here writes
         to the Scheduler sheet and then runs FairLeave's existing one-way sync, so nothing diverges.
         Entitlement goes wherever the sync will not overwrite it — the console tells you which.</p>
+      <p class="hint"><strong>The Zanna Clock is a third system and is not updated by saving here.</strong>
+        It reads the Scheduler on its own — automatically at 05:00, or when you press
+        <em>Sync to Clock</em>. Until that runs, a new or reactivated person cannot clock in.</p>
 
       <div class="bar">
         <input type="search" id="empSearch" placeholder="Search name, email, team…" aria-label="Search employees">
         <label><input type="checkbox" id="showInactive"> show archived</label>
         <button class="btn" id="addEmp">+ Add employee</button>
-        <button class="btn ghost sm" id="syncEmp">Sync from Scheduler</button>
+        <button class="btn ghost sm" id="syncEmp" title="Pull people FROM the Scheduler INTO FairLeave">Sync from Scheduler</button>
+        <button class="btn ghost sm" id="syncClock" title="Push people FROM the Scheduler INTO the Zanna Clock, so they can clock in">Sync to Clock</button>
         <button class="btn ghost sm" id="reloadEmp">Reload</button>
       </div>
 
@@ -1452,6 +1456,15 @@
 
   $('runSyncStaff').addEventListener('click', function(){
     runSchedJob('syncStaff', 'Syncing staff to the clock…', $('runSyncStaff'));
+  });
+  // Same job as the Scheduler tab's button, put where the change is actually
+  // made. Saving an employee updates the Scheduler and FairLeave but NOT the
+  // clock, and a button on a different tab is a step people forget — which is
+  // how someone ends up unable to clock in on their first morning.
+  $('syncClock').addEventListener('click', function(){
+    runSchedJob('syncStaff', 'Syncing staff to the clock…', $('syncClock'));
+    // The roster shown here comes from FairLeave, not the clock, so there is
+    // nothing on this screen to refresh afterwards.
   });
   $('runSessions').addEventListener('click', function(){
     runSchedJob('rebuildSessions', 'Rebuilding sessions…', $('runSessions'));
