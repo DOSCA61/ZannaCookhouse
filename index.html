@@ -62,8 +62,9 @@
   .tile.lms{background:linear-gradient(160deg,#4e6376 0%,#3a4e60 60%)}
   .tile.clock{background:linear-gradient(160deg,#6b5a42 0%,#54452f 60%)}
   .tile.clock.emergency{background:linear-gradient(160deg,#8f3030 0%,#6e1f1f 60%)}
-  /* Management tile — muted on purpose so it does not compete with the staff apps */
+  /* Management tiles — muted on purpose so they do not compete with the staff apps */
   .tile.admin{background:linear-gradient(160deg,#4a4a46 0%,#35352f 60%)}
+  .tile.payroll{background:linear-gradient(160deg,#5c4a63 0%,#42334a 60%)}
   .tile .badge{
     position:absolute;bottom:22px;right:22px;font-size:10px;letter-spacing:.14em;
     text-transform:uppercase;font-weight:600;opacity:.8;
@@ -168,7 +169,7 @@
   const EXEC_URL = "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec";
   // Bump on every change to this file, then check the corner of the live page
   // to confirm GitHub Pages actually rebuilt with your commit.
-  const PANEL_VERSION = "1.2.0 (2026-08-14)";
+  const PANEL_VERSION = "1.3.0 (2026-08-15)";
 </script>
 
   <header>
@@ -240,6 +241,18 @@
         <p class="desc">Who is in the building right now, grouped by department. Fire marshal view.</p>
       </a>
     </div>
+    <!-- Payroll carries a device token in its URL, so it is data-app driven like
+         the Clock tiles: the URL lives in Panel_Apps, never in this file. -->
+    <div class="cell">
+      <a class="tile payroll" data-app="payroll">
+        <span class="go">→</span>
+        <span class="icon">💶</span>
+        <h2>Payroll</h2>
+        <p class="desc">Process a week, check the hours, export to Excel. Reads the clock-in log — no spreadsheet needed.</p>
+        <span class="badge">Management</span>
+      </a>
+    </div>
+
     <div class="cell">
       <a class="tile admin" href="./admin.html">
         <span class="go">→</span>
@@ -302,6 +315,11 @@
       note:'Display only. Open on the office screen and Add to Home Screen. No device token — read-only view.'},
     {key:'clockEmergency', name:'Emergency Register',
       note:'Fire-marshal view. Open on the office screen or a phone. No device token — read-only view.'}
+    // Payroll and Data Maintenance are deliberately NOT listed here. This modal
+    // renders each URL as visible text, and the panel is readable by every member
+    // of staff who has the access code. Payroll's URL carries a device token, so
+    // showing it would hand every member of staff the door — the management PIN
+    // would be the only thing left. Management sets that URL in Panel_Apps.
   ];
 
   function getToken(promptIfMissing){
