@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payroll · Zanna Cookhouse</title>
+<style>
+  :root{
+    --bg:#f4f1e8; --ink:#1f2a24; --muted:#6b7a72; --line:#ddd7c7;
+    --card:#fff; --green:#2f6b4f; --amber:#b7791f; --red:#a33a2c; --blue:#35566e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);
+       min-height:100vh;padding:24px 18px 60px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-family:Georgia,'Times New Roman',serif;font-size:2.3rem;letter-spacing:-.5px}
+  .eyebrow{letter-spacing:.22em;text-transform:uppercase;font-size:.72rem;color:var(--red);
+           font-weight:700;margin-bottom:6px}
+  .sub{color:var(--muted);margin-top:6px}
+  .hidden{display:none !important}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-top:18px;
+         box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  label{display:block;font-weight:600;font-size:.85rem;margin-bottom:6px;color:var(--muted)}
+  select,input[type=date],input[type=password]{font:inherit;padding:11px 12px;border:1px solid var(--line);
+       border-radius:9px;background:#fff;color:var(--ink);width:100%}
+  button{font:inherit;font-weight:600;border:0;border-radius:9px;padding:11px 18px;cursor:pointer;
+         background:var(--ink);color:#fff}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+  button.green{background:var(--green)} button.blue{background:var(--blue)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .row > div{flex:1;min-width:170px}
+  .row .act{flex:0 0 auto;min-width:0}
+  .msg{padding:12px 14px;border-radius:10px;margin-top:14px;font-weight:600}
+  .msg.err{background:#fbe9e6;color:#8c2f22;border:1px solid #efc9c2}
+  .msg.ok{background:#e7f2ec;color:#1f5a41;border:1px solid #c3e0d2}
+  .msg.warn{background:#fdf3e0;color:#8a5b12;border:1px solid #ecd9b0}
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:.93rem}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+  th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tbody tr:hover{background:#faf8f2}
+  tr.flagged td{background:#fdf7ea}
+  .flag{display:inline-block;background:#f0e0bd;color:#7a5310;border-radius:5px;padding:1px 7px;
+        font-size:.72rem;font-weight:700;margin-left:6px}
+  tfoot td{font-weight:800;border-top:2px solid var(--ink);border-bottom:0;padding-top:12px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:16px}
+  .tile{background:#faf8f2;border:1px solid var(--line);border-radius:11px;padding:14px}
+  .tile .k{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .tile .v{font-size:1.7rem;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px}
+  .foot{text-align:center;color:var(--muted);font-size:.8rem;margin-top:28px}
+  .foot a{color:var(--muted)}
+  .pin{max-width:380px;margin:8vh auto 0}
+  .src{font-size:.82rem;color:var(--muted);margin-top:10px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Zanna Cookhouse</div>
+  <h1>Payroll</h1>
+  <div class="sub" id="sub">Process the week, check it, export it. No spreadsheet required.</div>
+
+  <div id="fatal" class="msg err hidden"></div>
+
+  <!-- ============================ SIGN IN ============================ -->
+  <section id="gate" class="panel pin hidden">
+    <label for="pin">Management PIN</label>
+    <input type="password" id="pin" autocomplete="off" inputmode="text" placeholder="••••••••">
+    <div style="margin-top:12px"><button id="go" style="width:100%">Sign in</button></div>
+    <div id="gateMsg"></div>
+  </section>
+
+  <!-- ============================ MAIN ============================ -->
+  <section id="main" class="hidden">
+
+    <div class="panel">
+      <div class="row">
+        <div>
+          <label for="week">Week</label>
+          <select id="week"></select>
+        </div>
+        <div class="act"><button class="ghost" id="rangeToggle">Use a date range instead</button></div>
+        <div class="act"><button class="green" id="process">Process payroll</button></div>
+      </div>
+
+      <div class="row hidden" id="rangeRow" style="margin-top:14px">
+        <div><label for="from">Weeks beginning on or after</label><input type="date" id="from"></div>
+        <div><label for="to">and on or before</label><input type="date" id="to"></div>
+        <div class="act"><button class="blue" id="applyRange">Show</button></div>
+      </div>
+
+      <div id="msg"></div>
+      <!-- Separate from #msg on purpose. The process summary carries the
+           warnings that matter (break types treated as paid, shifts never
+           clocked out) and must survive the row-load that follows it. When
+           both shared one div, the summary was wiped milliseconds later. -->
+      <div id="procMsg"></div>
+      <div class="src">
+        Figures are read from the Clock's <strong>Payroll</strong> tab, which is built from the
+        raw clock-in log. <strong>Process payroll</strong> rebuilds it from those events — safe to
+        run as often as you like, and it never alters what anyone actually clocked.
+      </div>
+    </div>
+
+    <div class="panel hidden" id="results">
+      <div class="row" style="align-items:center">
+        <div style="flex:1 1 auto"><strong id="scope"></strong></div>
+        <div class="act"><button class="blue" id="xlsx">⬇ Export to Excel</button></div>
+        <div class="act"><button class="ghost" id="csv">⬇ CSV</button></div>
+      </div>
+
+      <div class="tiles" id="tiles"></div>
+      <div id="warnBox"></div>
+
+      <div style="overflow-x:auto">
+        <table id="tbl">
+          <thead><tr>
+            <th>Employee</th><th>Week</th><th>Week beginning</th>
+            <th class="num">Gross mins</th><th>Breaks deducted</th><th>Breaks paid</th>
+            <th class="num">Deducted</th><th class="num">Net mins</th><th class="num">Net hours</th>
+          </tr></thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    Zanna Cookhouse internal tools · <a href="#" onclick="signOut();return false">sign out</a>
+    <div id="ver" style="margin-top:4px"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* ------------------------------------------------------------------ config */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyJDs7Dh8UDakGcczmSdpcWBCDacKsXhIh8ZALlijaZE413VHO--ZCS7A4FaJDnYtcm/exec';
+
+/* URL: #t=<deviceToken>   — same device-token scheme as the kiosk and displays.
+   doPost checks the token BEFORE it looks at the PIN, so this page needs one
+   just like every other client. Use any active token from the Devices tab. */
+const TOKEN = (Object.fromEntries(new URLSearchParams(location.hash.slice(1))).t) || '';
+
+let PIN = '';                 // memory only — never stored, never in the URL
+let rows = [], totals = null, scopeLabel = '';
+
+/* ------------------------------------------------------------------ api */
+async function api(action, body = {}) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // avoids CORS preflight
+    body: JSON.stringify(Object.assign({ action, deviceToken: TOKEN, mgmtPin: PIN }, body))
+  });
+  return res.json();
+}
+const $ = id => document.getElementById(id);
+function msg(t, kind) { $('msg').innerHTML = t ? '<div class="msg ' + (kind || 'ok') + '">' + t + '</div>' : ''; }
+function procMsg(t, kind) { $('procMsg').innerHTML = t ? '<div class="msg ' + (kind || 'ok') + '">' + t + '</div>' : ''; }
+function gateMsg(t, kind) { $('gateMsg').innerHTML = t ? '<div class="msg ' + (kind || 'err') + '">' + t + '</div>' : ''; }
+function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+function busy(on) { ['process','xlsx','csv','applyRange','week'].forEach(i => { if ($(i)) $(i).disabled = on; }); }
+
+/* ------------------------------------------------------------------ boot */
+function boot() {
+  if (!TOKEN) {
+    $('fatal').textContent = 'No device token in this link. Open Payroll from the Team Control Panel, ' +
+                             'or ask for the full URL — it ends with #t=…';
+    $('fatal').classList.remove('hidden');
+    return;
+  }
+  $('gate').classList.remove('hidden');
+  $('go').onclick = signIn;
+  $('pin').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
+  $('process').onclick = process;
+  $('week').onchange = () => loadRows({ week: $('week').value });
+  $('rangeToggle').onclick = toggleRange;
+  $('applyRange').onclick = () => loadRows({ from: $('from').value, to: $('to').value });
+  $('xlsx').onclick = exportXlsx;
+  $('csv').onclick = exportCsv;
+
+  // The Excel button is only honest if the library actually loaded.
+  if (typeof XLSX === 'undefined') {
+    $('xlsx').disabled = true;
+    $('xlsx').title = 'Excel export unavailable — the spreadsheet library did not load. Use CSV.';
+  }
+}
+
+async function signIn() {
+  PIN = $('pin').value;
+  if (!PIN) return gateMsg('Enter the management PIN.');
+  gateMsg('Checking…', 'ok');
+  try {
+    const r = await api('payroll.weeks');
+    if (!r.ok) {
+      PIN = '';
+      // doPost answers a wrong PIN and an unknown action identically, on
+      // purpose — it gives nothing away. Say what BOTH causes are.
+      return gateMsg(r.error === 'Unknown action or missing permission'
+        ? 'Wrong PIN — or the Clock script is older than v1.9.0 and does not have the payroll app yet.'
+        : (r.error || 'Sign-in failed.'));
+    }
+    gateMsg('');
+    $('gate').classList.add('hidden');
+    $('main').classList.remove('hidden');
+    $('ver').textContent = 'Payroll app v1.0 · backend v' + (r.version || '?');
+    fillWeeks(r.weeks || []);
+  } catch (e) { PIN = ''; gateMsg('Cannot reach the server. Check the connection and try again.'); }
+}
+
+function signOut() { PIN = ''; rows = []; location.reload(); }
+
+function fillWeeks(weeks) {
+  const sel = $('week');
+  sel.innerHTML = '';
+  if (!weeks.length) {
+    sel.innerHTML = '<option value="">No payroll data yet</option>';
+    msg('The Payroll tab is empty. Press <strong>Process payroll</strong> to build it from the clock-in log.', 'warn');
+    return;
+  }
+  weeks.forEach(w => {
+    const o = document.createElement('option');
+    o.value = w.week;
+    // "W32 · week beginning 03/08/2026 · 15 staff" — nobody should have to
+    // know what W32 means on its own.
+    o.textContent = w.week + '  ·  week beginning ' + niceDate(w.weekStart) +
+                    '  ·  ' + w.staff + ' staff' + (w.warnings ? '  ⚠' : '');
+    sel.appendChild(o);
+  });
+  loadRows({ week: weeks[0].week });
+}
+
+function niceDate(iso) {
+  if (!iso) return '?';
+  const p = iso.split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso;
+}
+
+function toggleRange() {
+  const open = $('rangeRow').classList.toggle('hidden') === false;
+  $('rangeToggle').textContent = open ? 'Back to a single week' : 'Use a date range instead';
+  if (!open && $('week').value) loadRows({ week: $('week').value });
+}
+
+/* ------------------------------------------------------------------ data */
+async function loadRows(q) {
+  busy(true); msg('Loading…');
+  try {
+    const r = await api('payroll.rows', q);
+    if (!r.ok) return msg(esc(r.error || 'Could not load payroll.'), 'err');
+    rows = r.rows || []; totals = r.totals; scopeLabel = r.scope || '';
+    msg('');
+    render();
+  } catch (e) { msg('Cannot reach the server.', 'err'); }
+  finally { busy(false); }
+}
+
+async function process() {
+  if (!confirm('Rebuild Sessions and Payroll from the clock-in log?\n\n' +
+               'This recalculates from what people actually clocked. It does not change ' +
+               'any clock-in or clock-out.')) return;
+  busy(true); procMsg(''); msg('Processing… this can take a few seconds.');
+  try {
+    const r = await api('payroll.process');
+    if (!r.ok) return procMsg(esc(r.error || 'Processing failed.'), 'err');
+    let t = '✔ Processed. ' + r.sessions + ' session rows, ' + r.payrollRows + ' payroll rows.';
+    const notes = [];
+    if (r.open)        notes.push(r.open + ' shift(s) still open — someone has not clocked out');
+    if (r.unclosed)    notes.push(r.unclosed + ' break(s) started but never ended');
+    if (r.splitShifts) notes.push(r.splitShifts + ' split shift(s) recovered');
+    if (r.unknownBreakTypes && r.unknownBreakTypes.length) {
+      notes.push('break type(s) not in Config, treated as PAID: ' + r.unknownBreakTypes.join(', '));
+    }
+    procMsg(t + (notes.length ? '<br>⚠ ' + notes.map(esc).join('<br>⚠ ') : ''), notes.length ? 'warn' : 'ok');
+    msg('');
+    const w = await api('payroll.weeks');
+    if (w.ok) fillWeeks(w.weeks || []);
+  } catch (e) { procMsg('Cannot reach the server.', 'err'); }
+  finally { busy(false); }
+}
+
+/* ------------------------------------------------------------------ render */
+function render() {
+  $('results').classList.toggle('hidden', !rows.length);
+  $('scope').textContent = rows.length ? 'Showing ' + scopeLabel : '';
+  if (!rows.length) { msg('Nothing for that selection.', 'warn'); return; }
+
+  const flagged = rows.filter(r => r.warning);
+  $('warnBox').innerHTML = flagged.length
+    ? '<div class="msg warn">⚠ ' + flagged.length + ' row(s) include a break type that is not in the ' +
+      'Clock\'s Config tab. Those minutes have been treated as <strong>paid</strong>. ' +
+      'Check the Config tab before paying this week.</div>'
+    : '';
+
+  const tb = $('tbl').querySelector('tbody');
+  tb.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    if (r.warning) tr.className = 'flagged';
+    tr.innerHTML =
+      '<td>' + esc(r.employee) + (r.warning ? '<span class="flag">check</span>' : '') + '</td>' +
+      '<td>' + esc(r.week) + '</td>' +
+      '<td>' + niceDate(r.weekStart) + '</td>' +
+      '<td class="num">' + r.gross + '</td>' +
+      '<td>' + esc(r.breaksDeducted || '—') + '</td>' +
+      '<td>' + esc(r.breaksPaid || '—') + '</td>' +
+      '<td class="num">' + r.deducted + '</td>' +
+      '<td class="num">' + r.netMins + '</td>' +
+      '<td class="num">' + r.netHours.toFixed(2) + '</td>';
+    tb.appendChild(tr);
+  });
+
+  $('tbl').querySelector('tfoot').innerHTML =
+    '<tr><td colspan="3">' + totals.staff + ' staff</td>' +
+    '<td class="num">' + totals.gross + '</td><td></td><td></td>' +
+    '<td class="num">' + totals.deducted + '</td>' +
+    '<td class="num">' + totals.netMins + '</td>' +
+    '<td class="num">' + totals.netHours.toFixed(2) + '</td></tr>';
+
+  $('tiles').innerHTML =
+    tile('Staff', totals.staff) +
+    tile('Net hours', totals.netHours.toFixed(2)) +
+    tile('Break time deducted', hrs(totals.deducted)) +
+    tile('Gross hours', hrs(totals.gross)) +
+    (totals.warnings ? tile('Need checking', totals.warnings) : '');
+}
+function tile(k, v) { return '<div class="tile"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>'; }
+function hrs(mins) { return (mins / 60).toFixed(2); }
+
+/* ------------------------------------------------------------------ export */
+function fileStem() {
+  const w = rows.length ? rows[0] : null;
+  const base = 'Zanna-Payroll-' + (w ? w.week + '-' + w.weekStart : 'export');
+  return base.replace(/[^A-Za-z0-9._-]/g, '-');
+}
+function exportRows() {
+  const head = ['Employee','Week','Week beginning','Gross minutes','Breaks deducted','Breaks paid',
+                'Total deducted minutes','Net paid minutes','Net paid hours','Needs checking'];
+  const body = rows.map(r => [r.employee, r.week, r.weekStart, r.gross, r.breaksDeducted,
+                              r.breaksPaid, r.deducted, r.netMins, r.netHours, r.warning ? 'YES' : '']);
+  body.push(['TOTAL (' + totals.staff + ' staff)','','', totals.gross, '', '',
+             totals.deducted, totals.netMins, totals.netHours, '']);
+  return [head].concat(body);
+}
+
+function exportXlsx() {
+  if (typeof XLSX === 'undefined') return msg('Excel export is unavailable — use CSV.', 'err');
+  const aoa = exportRows();
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:20},{wch:7},{wch:15},{wch:14},{wch:22},{wch:22},{wch:20},{wch:18},{wch:15},{wch:14}];
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Payroll');
+  XLSX.writeFile(wb, fileStem() + '.xlsx');
+  msg('Exported ' + fileStem() + '.xlsx', 'ok');
+}
+
+function exportCsv() {
+  // Quote everything. A department or note containing a comma would otherwise
+  // shift every column after it, silently.
+  const csv = exportRows().map(r => r.map(v => {
+    const s = v == null ? '' : String(v);
+    return '"' + s.replace(/"/g, '""') + '"';
+  }).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });   // BOM: Excel reads UTF-8
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileStem() + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  msg('Exported ' + fileStem() + '.csv', 'ok');
+}
+
+boot();
+</script>
+</body>
+</html>
