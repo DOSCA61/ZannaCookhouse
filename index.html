@@ -170,7 +170,7 @@
   const EXEC_URL = "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec";
   // Bump on every change to this file, then check the corner of the live page
   // to confirm GitHub Pages actually rebuilt with your commit.
-  const PANEL_VERSION = "1.4.0 (2026-08-17)";
+  const PANEL_VERSION = "1.5.0 (2026-08-18)";
 </script>
 
   <header>
@@ -242,6 +242,27 @@
         <p class="desc">Who is in the building right now, grouped by department. Fire marshal view.</p>
       </a>
     </div>
+    <!-- QR Code Login — the rotating code screen for the entrance.
+         Its URL carries the QR device token, so like the Clock tiles it is
+         data-app driven and lives in Panel_Apps, never in this file.
+
+         KNOWN AND ACCEPTED (Donal, 2026-08-18): every member of staff with the
+         panel access code can open this and read the live code from anywhere.
+         Combined with their own personal clock-in link that makes clocking in
+         off-site possible. The rotating code therefore protects against
+         outsiders and photographed screens, not against staff. If it ever shows
+         up in the numbers, the cheap lever is QR_WINDOW_SECS = 120 on the
+         Clock's Config tab — a two-minute window means a remote viewer has to
+         be watching in near real time. -->
+    <div class="cell">
+      <a class="tile clock" data-app="clockQrPanel">
+        <span class="go">→</span>
+        <span class="icon">🔳</span>
+        <h2>QR Code Login</h2>
+        <p class="desc">The rotating code for the entrance screen. Staff scan it with their own clock-in link to start a shift — no PIN, no typing.</p>
+      </a>
+    </div>
+
     <!-- Payroll carries a device token in its URL, so it is data-app driven like
          the Clock tiles: the URL lives in Panel_Apps, never in this file. -->
     <div class="cell">
@@ -328,7 +349,9 @@
     {key:'clockOffice', name:'Clock — Office Display',
       note:'Display only. Open on the office screen and Add to Home Screen. No device token — read-only view.'},
     {key:'clockEmergency', name:'Emergency Register',
-      note:'Fire-marshal view. Open on the office screen or a phone. No device token — read-only view.'}
+      note:'Fire-marshal view. Open on the office screen or a phone. No device token — read-only view.'},
+    {key:'clockQrPanel', name:'QR Code Login — entrance screen',
+      note:'Open on the screen by the door and Add to Home Screen, then leave it on. It shows a code that changes every 10 minutes; staff scan it with their own clock-in link. Carries a QR device token — keep the URL internal.'}
     // Payroll and Data Maintenance are deliberately NOT listed here. This modal
     // renders each URL as visible text, and the panel is readable by every member
     // of staff who has the access code. Payroll's URL carries a device token, so
