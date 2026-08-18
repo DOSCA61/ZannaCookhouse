@@ -166,9 +166,15 @@
      ===================================================================== -->
 <script>
   const EXEC_URL = "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec";
+  // The ZANNA CLOCK web app — a different project from FairLeave, hence a second
+  // URL. Used only to open its slip-printing page in a new tab; this console
+  // never calls it. Deliberately NOT routed through the FairLeave→Clock relay:
+  // that relay has broken twice this month over a mismatched copy of a secret,
+  // and printing credentials should not stop working when syncing does.
+  const CLOCK_EXEC_URL = "https://script.google.com/macros/s/AKfycbyJDs7Dh8UDakGcczmSdpcWBCDacKsXhIh8ZALlijaZE413VHO--ZCS7A4FaJDnYtcm/exec";
   // Bump on every change to this file. Shown on screen so a stale cached copy
   // is visible at a glance instead of being mistaken for a backend problem.
-  const CONSOLE_VERSION = "1.4.0 (2026-08-17)";
+  const CONSOLE_VERSION = "1.5.0 (2026-08-18)";
 </script>
 
 <!-- ── Gate ─────────────────────────────────────────────── -->
@@ -229,6 +235,7 @@
         <button class="btn" id="addEmp">+ Add employee</button>
         <button class="btn ghost sm" id="syncEmp" title="Pull people FROM the Scheduler INTO FairLeave">Sync from Scheduler</button>
         <button class="btn ghost sm" id="syncClock" title="Push people FROM the Scheduler INTO the Zanna Clock, so they can clock in">Sync to Clock</button>
+        <button class="btn ghost sm" id="slipsEmp" title="Print QR clock-in slips — opens the Zanna Clock, which asks for its own management PIN">🔳 Clock-in slips</button>
         <button class="btn ghost sm" id="reloadEmp">Reload</button>
       </div>
 
@@ -245,6 +252,12 @@
       <p class="note" id="empNote" hidden></p>
       <p class="note warn">Anyone marked <em>not imported</em> exists in the Scheduler but has not been
         synced into FairLeave yet — they have no leave record and no private link until you sync.</p>
+      <p class="note"><strong>Clock-in slips</strong> opens the Zanna Clock in a new tab and asks for
+        <em>its</em> management PIN — a different system, a different door. It prints one QR per person:
+        they scan it once with a phone camera, add it to the home screen, and clock in by pointing at the
+        screen by the door. <strong>Each slip is a working credential.</strong> Hand them out, watch one
+        person use theirs, then destroy the spares — the links cannot be shown again.
+        <em>Slip</em> on a row reissues that one person and kills their old link.</p>
     </div>
   </section>
 
@@ -730,6 +743,18 @@
       var edit = el('button', 'Edit', 'btn ghost sm');
       edit.addEventListener('click', function(){ openEmp(e); });
       tdAct.appendChild(edit);
+
+      // Reissue one person's clock-in slip — a lost phone, or a new starter.
+      // Only for people who are active and have a Scheduler ID, because the
+      // Clock keys on that. Somebody still showing "not imported" has no Clock
+      // record yet, so there would be nothing to issue against.
+      if (e.active && e.extId) {
+        var slip = el('button', 'Slip', 'btn ghost sm');
+        slip.title = 'Print a new clock-in QR for ' + (e.name || 'this person') +
+                     ' — replaces their current one';
+        slip.addEventListener('click', function(){ openSlips(e.extId); });
+        tdAct.appendChild(slip);
+      }
       tr.appendChild(tdAct);
       body.appendChild(tr);
     });
@@ -742,6 +767,20 @@
     employees.forEach(function(e){ if (e.team) seen[e.team] = 1; });
     Object.keys(seen).forEach(function(nm){ var o = el('option'); o.value = nm; dl.appendChild(o); });
   }
+
+  /**
+   * Open the Zanna Clock's slip-printing page in a new tab.
+   *
+   * A link, not an integration. The page gates itself with the CLOCK's
+   * management PIN — a different door from this console's Admin_PIN, because
+   * they are different systems and pretending otherwise would mean putting one
+   * PIN behind the other. Nothing about tokens or QR encoding lives here.
+   */
+  function openSlips(extId){
+    var url = CLOCK_EXEC_URL + '?qp=print' + (extId ? '&id=' + encodeURIComponent(extId) : '');
+    window.open(url, '_blank', 'noopener');
+  }
+  $('slipsEmp').addEventListener('click', function(){ openSlips(''); });
 
   $('empSearch').addEventListener('input', renderEmployees);
   $('showInactive').addEventListener('change', renderEmployees);
