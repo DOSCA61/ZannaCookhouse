@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Zanna Cookhouse — Data Maintenance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#22302b; --plaster:#f0ece3; --glaze-a:#3e6b5a; --glaze-b:#b4552d;
+    --grout:#d8d2c4; --white:#fbfaf6; --muted:#5b665f; --faint:#8b948d;
+    --danger:#8f3030;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:'Inter',system-ui,sans-serif;background:var(--plaster);color:var(--ink);
+    min-height:100vh;padding:32px 20px 64px;
+    background-image:linear-gradient(var(--grout) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--grout) 1px,transparent 1px);
+    background-size:72px 72px;
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+
+  /* ── Gate ─────────────────────────────────────────────── */
+  .gate{max-width:420px;margin:12vh auto;background:var(--white);border-radius:14px;
+    padding:32px 30px;box-shadow:0 8px 30px rgba(34,48,43,.16);text-align:center}
+  .gate .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--glaze-b);font-weight:600;margin-bottom:10px}
+  .gate h1{font-family:'Fraunces',serif;font-size:27px;font-weight:700;margin-bottom:6px}
+  .gate p{font-size:14px;color:var(--muted);line-height:1.55;margin-bottom:20px}
+  .gate input{width:100%;font:inherit;font-size:16px;padding:11px 13px;border:1px solid var(--grout);
+    border-radius:9px;background:var(--plaster);text-align:center;letter-spacing:.05em}
+  .gate input:focus{outline:2px solid var(--glaze-a);outline-offset:1px}
+  .gate .err{color:var(--danger);font-size:13.5px;margin-top:12px;min-height:19px;line-height:1.45}
+  .gate .back{display:inline-block;margin-top:18px;font-size:13px;color:var(--faint)}
+  .ver{margin-top:14px;font-size:11px;color:var(--faint);font-family:ui-monospace,Menlo,Consolas,monospace}
+
+  /* ── Shell ────────────────────────────────────────────── */
+  .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+    flex-wrap:wrap;margin-bottom:22px}
+  .topbar .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--glaze-b);font-weight:600;margin-bottom:6px}
+  .topbar h1{font-family:'Fraunces',serif;font-size:clamp(26px,4vw,36px);font-weight:700;line-height:1.1}
+  .topbar .meta{font-size:12.5px;color:var(--faint);text-align:right;line-height:1.7}
+  .topbar .meta a{color:var(--muted)}
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:2px solid var(--grout);margin-bottom:22px}
+  .tabs button{font:inherit;font-size:14px;font-weight:600;color:var(--muted);background:none;
+    border:0;border-bottom:3px solid transparent;padding:10px 15px;cursor:pointer;margin-bottom:-2px}
+  .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--glaze-a)}
+  .tabs button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+  .panel{display:none}
+  .panel.active{display:block}
+
+  .card{background:var(--white);border-radius:12px;padding:22px 24px;
+    box-shadow:0 3px 14px rgba(34,48,43,.09);margin-bottom:20px}
+  .card h2{font-family:'Fraunces',serif;font-size:21px;font-weight:600;margin-bottom:4px}
+  .card .sub{font-size:13.5px;color:var(--muted);line-height:1.55;margin-bottom:16px}
+  .card .sub strong{color:var(--ink)}
+
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .bar input[type=search]{flex:1;min-width:180px;font:inherit;font-size:14px;padding:9px 12px;
+    border:1px solid var(--grout);border-radius:8px;background:var(--plaster)}
+  .bar label{font-size:13.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+
+  button.btn{font:inherit;font-size:13.5px;font-weight:600;color:var(--white);background:var(--glaze-a);
+    border:0;border-radius:8px;padding:9px 16px;cursor:pointer;white-space:nowrap}
+  button.btn:hover{filter:brightness(1.08)}
+  button.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  button.btn.ghost{background:none;color:var(--muted);border:1px solid var(--grout)}
+  button.btn.warn{background:var(--glaze-b)}
+  button.btn.danger{background:var(--danger)}
+  button.btn.sm{padding:6px 11px;font-size:12.5px}
+  button.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;letter-spacing:.05em;
+    text-transform:uppercase;padding:8px 10px;border-bottom:2px solid var(--grout);white-space:nowrap}
+  td{padding:9px 10px;border-bottom:1px solid var(--grout);vertical-align:middle}
+  tbody tr:hover{background:var(--plaster)}
+  tr.inactive td{opacity:.55}
+  .pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;
+    background:var(--grout);color:var(--muted)}
+  .pill.on{background:#d9e8e0;color:#2f5b48}
+  .pill.off{background:#e8d9d9;color:#7a3535}
+  .pill.warnflag{background:#f0e2d2;color:#8a4f22}
+  .tablewrap{overflow-x:auto}
+  .empty{padding:26px 10px;text-align:center;color:var(--faint);font-size:14px}
+
+  /* ── Forms ────────────────────────────────────────────── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+  .field label{display:block;font-size:12px;font-weight:600;letter-spacing:.05em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .field input,.field select{width:100%;font:inherit;font-size:14px;padding:9px 11px;
+    border:1px solid var(--grout);border-radius:8px;background:var(--plaster);color:var(--ink)}
+  .field input:focus,.field select:focus{outline:2px solid var(--glaze-a);outline-offset:1px}
+  .field input[readonly]{background:#eae6dd;color:var(--faint)}
+  .field .hint{font-size:11.5px;color:var(--faint);margin-top:4px;line-height:1.45}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;align-items:center}
+  .actions .spacer{flex:1}
+
+  /* ── Modal ────────────────────────────────────────────── */
+  .modal{display:none;position:fixed;inset:0;z-index:60;background:rgba(34,48,43,.55);
+    padding:20px;overflow-y:auto}
+  .modal.open{display:block}
+  .modal-card{background:var(--white);border-radius:14px;max-width:620px;width:100%;
+    margin:5vh auto;padding:24px 26px 28px;box-shadow:0 12px 40px rgba(34,48,43,.35)}
+  .modal-card h2{font-family:'Fraunces',serif;font-size:23px;font-weight:700;margin-bottom:3px}
+  .modal-card .sub{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5}
+  .modal-close{float:right;font-size:24px;line-height:1;border:0;background:none;
+    cursor:pointer;color:var(--faint)}
+
+  /* ── Toast ────────────────────────────────────────────── */
+  #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(120%);
+    background:var(--ink);color:var(--white);font-size:14px;padding:12px 20px;border-radius:10px;
+    box-shadow:0 8px 24px rgba(34,48,43,.3);z-index:100;transition:transform .22s ease;
+    max-width:min(560px,92vw);line-height:1.45}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast.bad{background:var(--danger)}
+
+  .note{font-size:12.5px;color:var(--muted);line-height:1.6;background:var(--plaster);
+    border-left:3px solid var(--glaze-a);border-radius:0 8px 8px 0;padding:11px 14px;margin-top:14px}
+  .note.warn{border-left-color:var(--glaze-b)}
+  .note.danger{border-left-color:var(--danger)}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+    background:var(--plaster);border:1px solid var(--grout);border-radius:5px;padding:1px 5px}
+  pre{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.6;
+    background:var(--plaster);border:1px solid var(--grout);border-radius:8px;padding:12px;
+    overflow-x:auto;max-height:340px;white-space:pre-wrap;word-break:break-word}
+
+  body.busy{cursor:progress}
+  @media (prefers-reduced-motion:reduce){#toast{transition:none}}
+
+  /* ── Scheduler settings ───────────────────────────────── */
+  .grouphead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    flex-wrap:wrap;margin:22px 0 10px;padding-top:16px;border-top:1px solid var(--grout)}
+  .grouphead:first-of-type{margin-top:0;padding-top:0;border-top:0}
+  .grouphead h3{font-family:'Fraunces',serif;font-size:16.5px;font-weight:600}
+  .grouphead .why{font-size:12px;color:var(--faint);line-height:1.5;flex:1;min-width:200px;text-align:right}
+  .field .unit{font-size:11.5px;color:var(--faint);margin-left:6px;font-weight:500;text-transform:none;letter-spacing:0}
+  .field.dirty input,.field.dirty select{border-color:var(--glaze-b);background:#fbf3ec}
+  .field.locked input,.field.locked select{background:#eae6dd;color:var(--faint)}
+  .field .keyname{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px;
+    color:var(--faint);letter-spacing:0;text-transform:none;display:block;margin-top:3px}
+  .runrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px}
+  .runrow .spacer{flex:1}
+  .stat{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);
+    background:var(--plaster);border:1px solid var(--grout);border-radius:8px;padding:8px 12px}
+  .stat b{color:var(--ink);font-weight:600}
+  .savebar{position:sticky;bottom:0;background:var(--white);border-top:1px solid var(--grout);
+    margin:18px -24px -22px;padding:14px 24px;border-radius:0 0 12px 12px;
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .savebar .count{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     No secrets in this file. The admin PIN is verified server-side by
+     Admin.gs; every response is gated on a short-lived session token held
+     in sessionStorage only (cleared when the tab closes).
+     ===================================================================== -->
+<script>
+  const EXEC_URL = "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec";
+  // The ZANNA CLOCK web app — a different project from FairLeave, hence a second
+  // URL. Used only to open its slip-printing page in a new tab; this console
+  // never calls it. Deliberately NOT routed through the FairLeave→Clock relay:
+  // that relay has broken twice this month over a mismatched copy of a secret,
+  // and printing credentials should not stop working when syncing does.
+  const CLOCK_EXEC_URL = "https://script.google.com/macros/s/AKfycbyJDs7Dh8UDakGcczmSdpcWBCDacKsXhIh8ZALlijaZE413VHO--ZCS7A4FaJDnYtcm/exec";
+  // Bump on every change to this file. Shown on screen so a stale cached copy
+  // is visible at a glance instead of being mistaken for a backend problem.
+  const CONSOLE_VERSION = "1.5.0 (2026-08-18)";
+</script>
+
+<!-- ── Gate ─────────────────────────────────────────────── -->
+<div class="gate" id="gate">
+  <div class="eyebrow">Zanna Cookhouse</div>
+  <h1>Data Maintenance</h1>
+  <p>Management only. Enter the admin PIN to load employees and app settings.</p>
+  <form id="gateForm" autocomplete="off">
+    <input type="password" id="pin" placeholder="Admin PIN" autocomplete="current-password"
+           aria-label="Admin PIN" required>
+    <div class="actions" style="justify-content:center">
+      <button class="btn" type="submit" id="gateBtn">Unlock</button>
+    </div>
+  </form>
+  <p class="err" id="gateErr" role="alert"></p>
+  <a class="back" href="./index.html">← back to the control panel</a>
+  <p class="ver" id="gateVer"></p>
+</div>
+
+<!-- ── Console ──────────────────────────────────────────── -->
+<div class="wrap" id="app" hidden>
+  <div class="topbar">
+    <div>
+      <div class="eyebrow">Zanna Cookhouse</div>
+      <h1>Data Maintenance</h1>
+    </div>
+    <div class="meta">
+      Session ends in <span id="countdown">30:00</span> · <span id="verLine"></span><br>
+      <a href="./index.html">control panel</a> ·
+      <a href="#" id="signout">sign out</a>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="employees" aria-selected="true">Employees</button>
+    <button role="tab" data-tab="teams" aria-selected="false">Teams &amp; capacity</button>
+    <button role="tab" data-tab="blackouts" aria-selected="false">Blackouts</button>
+    <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
+    <button role="tab" data-tab="scheduler" aria-selected="false">Scheduler</button>
+    <button role="tab" data-tab="apps" aria-selected="false">App URLs</button>
+    <button role="tab" data-tab="audit" aria-selected="false">Audit</button>
+  </div>
+
+  <!-- EMPLOYEES -->
+  <section class="panel active" data-panel="employees">
+    <div class="card">
+      <h2>Employees</h2>
+      <p class="sub">The <strong>Shift Scheduler is the source of truth</strong> for people. Saving here writes
+        to the Scheduler sheet and then runs FairLeave's existing one-way sync, so nothing diverges.
+        Entitlement goes wherever the sync will not overwrite it — the console tells you which.</p>
+      <p class="hint"><strong>The Zanna Clock is a third system and is not updated by saving here.</strong>
+        It reads the Scheduler on its own — automatically at 05:00, or when you press
+        <em>Sync to Clock</em>. Until that runs, a new or reactivated person cannot clock in.</p>
+
+      <div class="bar">
+        <input type="search" id="empSearch" placeholder="Search name, email, team…" aria-label="Search employees">
+        <label><input type="checkbox" id="showInactive"> show archived</label>
+        <button class="btn" id="addEmp">+ Add employee</button>
+        <button class="btn ghost sm" id="syncEmp" title="Pull people FROM the Scheduler INTO FairLeave">Sync from Scheduler</button>
+        <button class="btn ghost sm" id="syncClock" title="Push people FROM the Scheduler INTO the Zanna Clock, so they can clock in">Sync to Clock</button>
+        <button class="btn ghost sm" id="slipsEmp" title="Print QR clock-in slips — opens the Zanna Clock, which asks for its own management PIN">🔳 Clock-in slips</button>
+        <button class="btn ghost sm" id="reloadEmp">Reload</button>
+      </div>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th>Name</th><th>Sched. ID</th><th>Team</th><th>Email</th>
+            <th>Leave</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="empBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="empEmpty" hidden>No employees loaded.</p>
+      <p class="note" id="empNote" hidden></p>
+      <p class="note warn">Anyone marked <em>not imported</em> exists in the Scheduler but has not been
+        synced into FairLeave yet — they have no leave record and no private link until you sync.</p>
+      <p class="note"><strong>Clock-in slips</strong> opens the Zanna Clock in a new tab and asks for
+        <em>its</em> management PIN — a different system, a different door. It prints one QR per person:
+        they scan it once with a phone camera, add it to the home screen, and clock in by pointing at the
+        screen by the door. <strong>Each slip is a working credential.</strong> Hand them out, watch one
+        person use theirs, then destroy the spares — the links cannot be shown again.
+        <em>Slip</em> on a row reissues that one person and kills their old link.</p>
+    </div>
+  </section>
+
+  <!-- TEAMS -->
+  <section class="panel" data-panel="teams">
+    <div class="card">
+      <h2>Teams &amp; concurrency limits</h2>
+      <p class="sub">Capacity is the maximum number of people from a team who can be off on any one
+        <strong>working</strong> day. FairLeave auto-approves up to this number, first come first served —
+        past it, staff resolve it between themselves with a swap.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Team</th><th style="width:110px">Members</th><th style="width:160px">Max off per day</th><th style="width:150px"></th></tr></thead>
+          <tbody id="teamBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="teamEmpty" hidden>No teams found.</p>
+      <div class="actions">
+        <button class="btn" id="addTeam">+ Add team</button>
+        <button class="btn ghost sm" id="reloadTeams">Reload</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLACKOUTS -->
+  <section class="panel" data-panel="blackouts">
+    <div class="card">
+      <h2>Blackout periods</h2>
+      <p class="sub">Hard company-wide blocks — nobody can book leave across these dates. Per-team blackouts
+        are deliberately not supported; that was a locked simplification.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>From</th><th>To</th><th>Reason</th><th style="width:90px"></th></tr></thead>
+          <tbody id="boBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="boEmpty" hidden>No blackout periods set.</p>
+
+      <div class="grid" style="margin-top:18px">
+        <div class="field"><label for="boStart">From</label><input type="date" id="boStart"></div>
+        <div class="field"><label for="boEnd">To</label><input type="date" id="boEnd"></div>
+        <div class="field"><label for="boReason">Reason</label>
+          <input type="text" id="boReason" placeholder="e.g. Christmas service" maxlength="80"></div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="addBo">Add blackout</button>
+        <button class="btn ghost sm" id="reloadBo">Reload</button>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="importLeave">Import existing scheduler leave</button>
+      </div>
+      <p class="note">The import is a one-time catch-up: it pulls approved leave that already exists in the
+        Scheduler into FairLeave as bookings. Rows FairLeave itself pushed are skipped, so running it twice
+        does not duplicate anything.</p>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="panel" data-panel="settings">
+    <div class="card">
+      <h2>FairLeave settings</h2>
+      <p class="sub">Key/value config read live from the Config tab. Anything credential-shaped
+        (PIN, token, secret) is deliberately not editable or even readable here — change those in
+        Script Properties.</p>
+      <div class="grid" id="setGrid"></div>
+      <p class="empty" id="setEmpty" hidden>No settings found.</p>
+      <div class="actions">
+        <button class="btn" id="saveSettings">Save settings</button>
+        <button class="btn ghost sm" id="reloadSettings">Reload</button>
+      </div>
+      <p class="note warn"><code>SCHEDULER_SHEET_ID</code> is what links this whole system to the Shift
+        Scheduler. Changing it repoints every sync, import and leave push. <code>MGMT_PIN</code> is hidden
+        here on purpose — change it in the Config tab of the sheet itself.</p>
+    </div>
+  </section>
+
+  <!-- SCHEDULER -->
+  <section class="panel" data-panel="scheduler">
+    <div class="card">
+      <h2>Shift Scheduler &amp; Zanna Clock settings</h2>
+      <p class="sub">Everything the Scheduler and the clock read out of their own <strong>Config</strong> tabs —
+        break rules, pay treatment, the working week, sync timing and new-employee defaults. These were
+        previously sheet-only. Written straight back to the Config tab, validated server-side, and every
+        change lands in the Audit log.</p>
+
+      <div class="bar">
+        <span class="stat" id="schedSource">Source: <b>—</b></span>
+        <span class="stat" id="schedTz">Script timezone: <b>—</b></span>
+        <button class="btn ghost sm" id="reloadSched">Reload</button>
+      </div>
+
+      <p class="note danger" id="schedNoOp" hidden>The server does not recognise
+        <code>scheduler.settings.get</code>. <strong>Admin_Scheduler.gs is not in the deployed code.</strong>
+        Add the file to the script project, then redeploy with <em>Manage deployments → ✏️ → New version</em>.
+        Nothing on this tab will save until then.</p>
+      <p class="note warn" id="schedWarn" hidden></p>
+
+      <div id="schedGroups"></div>
+      <p class="empty" id="schedEmpty" hidden>No scheduler settings loaded.</p>
+
+      <div class="savebar" id="schedSaveBar" hidden>
+        <button class="btn" id="saveSched">Save changes</button>
+        <button class="btn ghost sm" id="revertSched">Revert</button>
+        <span class="count" id="schedDirty">No changes</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Run now</h2>
+      <p class="sub">The scheduled jobs, on demand. Staff sync normally runs at
+        <strong>05:00 Dublin</strong>; Sessions rebuilds hourly only if that trigger is installed.</p>
+      <div class="runrow">
+        <button class="btn" id="runSyncStaff">Sync staff to clock</button>
+        <button class="btn ghost" id="runSessions">Rebuild sessions</button>
+        <button class="btn ghost" id="runPayroll">Rebuild payroll</button>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="schedDiag">Diagnose scheduler</button>
+      </div>
+      <div class="runrow" style="margin-top:14px">
+        <span class="stat" id="trigSync">Daily staff sync: <b>—</b></span>
+        <span class="stat" id="trigSessions">Hourly sessions rebuild: <b>—</b></span>
+      </div>
+      <div id="schedDiagOut" hidden><pre id="schedDiagPre"></pre></div>
+      <p class="note warn">Rebuilds are safe to re-run — Sessions and Payroll are derived from the
+        append-only Events tab, so nothing is lost. A staff sync only moves people who are
+        <code>Active = TRUE</code>.</p>
+    </div>
+  </section>
+
+  <!-- APP URLS -->
+  <section class="panel" data-panel="apps">
+    <div class="card">
+      <h2>App URLs</h2>
+      <p class="sub">These are the <code>Panel_Apps</code> entries the control panel hands out after a
+        successful access check. Leave a field blank to grey that tile out. HTTPS only.</p>
+      <div class="grid" id="appGrid"></div>
+      <div class="actions">
+        <button class="btn" id="saveApps">Save URLs</button>
+        <button class="btn ghost sm" id="reloadApps">Reload</button>
+      </div>
+      <p class="note warn"><strong>Careful with the FairLeave and Scheduler URLs.</strong> Those are
+        <code>/exec</code> endpoints. If you ever redeploy, always use <em>Manage deployments → ✏️ → New
+        version</em>. A "New deployment" mints a fresh URL and every staff link breaks.</p>
+    </div>
+
+    <div class="card">
+      <h2>Panel access code</h2>
+      <p class="sub">The code staff type to open the control panel. The current value is never shown —
+        only its length. Rotating it signs every device out.</p>
+      <div class="grid">
+        <div class="field">
+          <label for="tokLen">Current</label>
+          <input type="text" id="tokLen" readonly>
+        </div>
+        <div class="field">
+          <label for="newTok">New access code</label>
+          <input type="text" id="newTok" placeholder="12+ characters, no spaces" autocomplete="off">
+          <p class="hint">Staff will need to re-enter this on every device.</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn warn" id="rotateTok">Rotate access code</button>
+        <button class="btn ghost sm" id="genTok">Suggest one</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUDIT -->
+  <section class="panel" data-panel="audit">
+    <div class="card">
+      <h2>Audit log</h2>
+      <p class="sub">Every change made through this console, plus FairLeave's own mutations. Newest first.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th style="width:135px">When</th><th style="width:90px">Who</th>
+            <th style="width:170px">Action</th><th>Details</th></tr></thead>
+          <tbody id="auditBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="auditEmpty" hidden>No audit entries.</p>
+      <div class="actions">
+        <button class="btn ghost sm" id="reloadAudit">Reload</button>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="runDiag">Run diagnostic</button>
+      </div>
+      <div id="diagOut" hidden>
+        <p class="note">Tab names and resolved column headers, straight from both sheets. Run this
+          first when something is not saving — it tells you whether a column simply was not recognised.</p>
+        <pre id="diagPre"></pre>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ── Employee modal ───────────────────────────────────── -->
+<div class="modal" id="empModal" role="dialog" aria-modal="true" aria-labelledby="empModalTitle">
+  <div class="modal-card">
+    <button class="modal-close" id="empClose" type="button" aria-label="Close">×</button>
+    <h2 id="empModalTitle">Edit employee</h2>
+    <p class="sub">Written to the Shift Scheduler, then synced into FairLeave. Only fields that exist as
+      columns in the Scheduler are written — the rest are left alone rather than guessed at.</p>
+    <div class="grid">
+      <div class="field"><label for="fName">Name</label><input type="text" id="fName" maxlength="80"></div>
+      <div class="field"><label for="fId">Scheduler employee ID</label><input type="text" id="fId" maxlength="30">
+        <p class="hint">The Scheduler's own ID. Leave blank on a new record to auto-number.</p></div>
+      <div class="field"><label for="fEmail">Email</label><input type="email" id="fEmail" maxlength="120">
+        <p class="hint" id="emailHint"></p></div>
+      <div class="field"><label for="fTeam">Department</label><input type="text" id="fTeam" list="teamList" maxlength="60">
+        <datalist id="teamList"></datalist>
+        <p class="hint">Sync creates a matching FairLeave team if this is a new name (default limit 1 off per day).</p></div>
+      <div class="field"><label for="fRole">Role</label><input type="text" id="fRole" maxlength="60"></div>
+      <div class="field"><label for="fStart">Start date</label><input type="date" id="fStart"></div>
+      <div class="field"><label for="fEnt">Leave entitlement (days)</label>
+        <input type="number" id="fEnt" min="0" max="60" step="1">
+        <p class="hint" id="entHint"></p></div>
+      <div class="field"><label for="fActive">Status</label>
+        <select id="fActive"><option value="yes">Active</option><option value="no">Archived</option></select></div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="empSave">Save</button>
+      <button class="btn ghost" id="empCancel">Cancel</button>
+      <span class="spacer"></span>
+      <button class="btn ghost sm" id="empResetPin">Reset kiosk PIN</button>
+      <button class="btn ghost sm" id="empRegen">Reissue private link</button>
+      <button class="btn danger sm" id="empArchive">Archive</button>
+    </div>
+    <p class="note" id="empPinNote" hidden><strong>Reset kiosk PIN</strong> clears the PIN they use to
+      clock in. They choose a new one themselves the next time they tap their name at the kiosk &mdash;
+      there is nothing to issue and nothing to write down. The PIN lives in the <em>Zanna Clock</em>, so
+      this button needs the same clock connection as <em>Sync to Clock</em>.</p>
+    <p class="note danger" id="empArchiveNote" hidden>Archiving marks the person inactive in the Scheduler,
+      cancels their approved bookings and closes any pending swaps. Bookings, swaps and audit history are
+      all retained — nothing is deleted.</p>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ── State ──────────────────────────────────────────── */
+  var SESSION_KEY = 'zc_admin_session';
+  var session = sessionStorage.getItem(SESSION_KEY) || '';
+  var employees = [], teams = [], blackouts = [], settings = [], apps = {}, knownKeys = [];
+  var entOwner = 'fairleave', emailOwner = 'fairleave';
+  var available = { email: false, role: false, start: false };
+  var editing = null, expiresAt = 0, tick = null;
+
+  var APP_LABELS = {
+    fairleave:'FairLeave', scheduler:'Shift Scheduler', lms:'Training LMS (QuantumBuild)',
+    clockKiosk:'Zanna Clock — Kiosk', clockCanteen:'Clock — Canteen Display',
+    clockOffice:'Clock — Office Display', clockEmergency:'Emergency Register',
+    payroll:'Payroll (management)'
+  };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var el = function(tag, text, cls){
+    var n = document.createElement(tag);
+    if (text != null) n.textContent = text;   // textContent everywhere — never innerHTML with data
+    if (cls) n.className = cls;
+    return n;
+  };
+
+  /* ── Transport ──────────────────────────────────────── */
+  // No custom headers: keeps this a CORS "simple request" so Apps Script
+  // never sees a preflight it cannot answer.
+  function call(op, extra){
+    var payload = Object.assign({ action:'admin', op:op, session:session }, extra || {});
+    document.body.classList.add('busy');
+    return fetch(EXEC_URL, { method:'POST', body: JSON.stringify(payload) })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data && data.error === 'session_expired') { signOut('Session expired — sign in again.'); throw new Error('session_expired'); }
+        // Learn the backend version from ANY response that carries one, not just
+        // the sign-in. Resuming a saved session skips sign-in entirely, so the
+        // footer used to read "server not reached" on a perfectly healthy
+        // backend — which is exactly the wrong thing to tell someone who is
+        // using that footer to check whether their deploy landed.
+        if (data && data.version && data.version !== backendVersion) {
+          backendVersion = data.version;
+          showVersions();
+        }
+        // The server extends the session on every call, so the visible countdown
+        // has to follow suit — otherwise a busy tab logs itself out mid-edit.
+        touchSession();
+        return data;
+      })
+      .finally(function(){ document.body.classList.remove('busy'); });
+  }
+
+  function toast(msg, bad){
+    var t = $('toast');
+    t.textContent = msg;
+    t.className = 'show' + (bad ? ' bad' : '');
+    clearTimeout(t._h);
+    t._h = setTimeout(function(){ t.className = ''; }, bad ? 5200 : 3000);
+  }
+
+  function fail(res, fallback){
+    var map = {
+      scheduler_unavailable: 'Cannot reach the Shift Scheduler sheet. Check SCHEDULER_SHEET_ID in Settings, then run the diagnostic.',
+      scheduler_headers_unrecognised: 'The Scheduler Employees tab has no recognisable ID or Name column.',
+      missing_name: 'Name is required.',
+      not_found: 'That record no longer exists — reload.',
+      sync_failed: 'The sync from the Scheduler did not complete.',
+      import_failed: 'The leave import did not complete.',
+      save_failed: 'The server refused the save.',
+      delete_failed: 'The server refused the delete.',
+      regen_failed: 'Could not reissue the link.',
+      end_before_start: 'The end date is before the start date.',
+      invalid_urls: 'Rejected — URLs must start with https://',
+      too_short: 'Access code must be at least 12 characters.',
+      no_spaces: 'Access code cannot contain spaces.',
+      not_configured: 'Admin_PIN is not set in Script Properties yet.'
+    };
+    var key = res && res.error;
+    var msg = map[key] || (res && res.detail) || fallback || 'Something went wrong.';
+    if (res && res.rejected) msg += ' (' + res.rejected.join(', ') + ')';
+    toast(msg, true);
+  }
+
+  /* ── Version display ────────────────────────────────── */
+  var backendVersion = null;
+  function showVersions(){
+    var fe = 'page ' + CONSOLE_VERSION;
+    var be = backendVersion ? 'server ' + backendVersion : 'server not reached';
+    $('gateVer').textContent = fe + ' · ' + be;
+    $('verLine').textContent = fe + ' · ' + be;
+  }
+  showVersions();
+
+  /* ── Gate ───────────────────────────────────────────── */
+  $('gateForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var pin = $('pin').value;
+    if (!pin) return;
+    $('gateBtn').disabled = true;
+    $('gateErr').textContent = '';
+
+    fetch(EXEC_URL, { method:'POST', body: JSON.stringify({ action:'admin', op:'auth', pin:pin }) })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        $('gateBtn').disabled = false;
+        if (data && data.version) { backendVersion = data.version; showVersions(); }
+        if (data && data.ok) {
+          session = data.session;
+          sessionStorage.setItem(SESSION_KEY, session);
+          $('pin').value = '';
+          if (data.weakPin) {
+            setTimeout(function(){ toast('Admin PIN is shorter than 10 characters — lengthen it in Script Properties.', true); }, 900);
+          }
+          start(data.expiresIn || 1800);
+        } else if (data && data.error === 'locked_out') {
+          $('gateErr').textContent = 'Too many failed attempts. Locked for ' + (data.minutes || 15) + ' minutes.';
+        } else if (data && data.error === 'not_configured') {
+          $('gateErr').textContent = 'Admin_PIN is not set in Script Properties yet.';
+        } else if (data && data.error === 'bad_pin') {
+          var left = typeof data.remaining === 'number' ? data.remaining : null;
+          $('gateErr').textContent = 'Incorrect PIN.' + (left !== null ? ' ' + left + ' attempt' + (left === 1 ? '' : 's') + ' left.' : '');
+        } else {
+          // Anything else is a wiring problem, not a wrong PIN. Reporting it as
+          // "Incorrect PIN" sends people off checking a PIN that was fine all along —
+          // so show what the server actually said.
+          var raw = (data && (data.error || data.detail)) || 'no recognisable response';
+          $('gateErr').textContent = 'Server rejected the request: ' + raw;
+          if (!data || !data.version) {
+            $('gateErr').textContent += ' — and it reported no version, so Admin.gs is not running in the deployed code.';
+          }
+          if (/unknown action/i.test(raw)) {
+            $('gateErr').textContent += ' — the Apps Script deployment is stale. Redeploy as a NEW VERSION of the existing deployment.';
+          } else if (/adminHandle|not defined/i.test(raw)) {
+            $('gateErr').textContent += ' — Admin.gs is missing from the script project.';
+          }
+        }
+      })
+      .catch(function(){
+        $('gateBtn').disabled = false;
+        $('gateErr').textContent = 'Cannot reach the server. Check your connection.';
+      });
+  });
+
+  function signOut(msg){
+    if (session) {
+      // Fire and forget — local state is cleared either way, but the server-side
+      // session must actually die, or "sign out" is only cosmetic.
+      fetch(EXEC_URL, { method:'POST', body: JSON.stringify({ action:'admin', op:'signOut', session:session }) })
+        .catch(function(){});
+    }
+    sessionStorage.removeItem(SESSION_KEY);
+    session = '';
+    if (tick) clearInterval(tick);
+    $('app').hidden = true;
+    $('gate').style.display = '';
+    if (msg) $('gateErr').textContent = msg;
+  }
+
+  $('signout').addEventListener('click', function(e){ e.preventDefault(); signOut(''); });
+
+  function start(seconds){
+    $('gate').style.display = 'none';
+    $('app').hidden = false;
+    expiresAt = Date.now() + seconds * 1000;
+    if (tick) clearInterval(tick);
+    tick = setInterval(countdown, 1000);
+    countdown();
+    loadEmployees();
+  }
+
+  function countdown(){
+    var left = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+    var m = Math.floor(left / 60), s = left % 60;
+    $('countdown').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    if (left === 0) signOut('Session timed out.');
+  }
+  function touchSession(){ expiresAt = Date.now() + 30 * 60 * 1000; }
+
+  /* ── Tabs ───────────────────────────────────────────── */
+  var LOADERS = { employees: loadEmployees, teams: loadTeams, blackouts: loadBlackouts,
+                  settings: loadSettings, scheduler: loadScheduler, apps: loadApps, audit: loadAudit };
+  var loaded = {};
+
+  document.querySelectorAll('.tabs button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.tabs button').forEach(function(x){ x.setAttribute('aria-selected','false'); });
+      b.setAttribute('aria-selected','true');
+      var name = b.dataset.tab;
+      document.querySelectorAll('.panel').forEach(function(p){
+        p.classList.toggle('active', p.dataset.panel === name);
+      });
+      if (!loaded[name] && LOADERS[name]) LOADERS[name]();
+    });
+  });
+
+  /* ── Employees ──────────────────────────────────────── */
+  function loadEmployees(){
+    loaded.employees = true;
+    call('employees.list').then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not load employees.'); return; }
+      employees = res.employees || [];
+      teams = res.teams || [];
+      entOwner = res.entitlementOwner || 'fairleave';
+      emailOwner = res.emailOwner || 'fairleave';
+      available = res.available || { email: false, role: false, start: false };
+      renderEmployees();
+      var note = $('empNote');
+      if (res.schedWarning) { note.textContent = 'Scheduler: ' + res.schedWarning; note.hidden = false; }
+      else { note.hidden = true; }
+    }).catch(function(){});
+  }
+
+  function renderEmployees(){
+    var q = $('empSearch').value.trim().toLowerCase();
+    var showAll = $('showInactive').checked;
+    var body = $('empBody');
+    body.textContent = '';
+
+    var list = employees.filter(function(e){
+      if (!showAll && !e.active) return false;
+      if (!q) return true;
+      return [e.name, e.email, e.team, e.extId].join(' ').toLowerCase().indexOf(q) !== -1;
+    });
+    $('empEmpty').hidden = list.length > 0;
+
+    list.forEach(function(e){
+      var tr = el('tr');
+      if (!e.active) tr.className = 'inactive';
+      tr.appendChild(el('td', e.name || '—'));
+      tr.appendChild(el('td', e.extId || '—'));
+      tr.appendChild(el('td', e.team || '—'));
+      tr.appendChild(el('td', e.email || '—'));
+
+      var tdLeave = el('td');
+      if (e.pendingImport) tdLeave.appendChild(el('span', 'not imported', 'pill warnflag'));
+      else tdLeave.textContent = e.used + ' / ' + e.entitlement + ' days';
+      tr.appendChild(tdLeave);
+
+      var tdSt = el('td');
+      tdSt.appendChild(el('span', e.active ? 'Active' : 'Archived', 'pill ' + (e.active ? 'on' : 'off')));
+      tr.appendChild(tdSt);
+
+      var tdAct = el('td');
+      var edit = el('button', 'Edit', 'btn ghost sm');
+      edit.addEventListener('click', function(){ openEmp(e); });
+      tdAct.appendChild(edit);
+
+      // Reissue one person's clock-in slip — a lost phone, or a new starter.
+      // Only for people who are active and have a Scheduler ID, because the
+      // Clock keys on that. Somebody still showing "not imported" has no Clock
+      // record yet, so there would be nothing to issue against.
+      if (e.active && e.extId) {
+        var slip = el('button', 'Slip', 'btn ghost sm');
+        slip.title = 'Print a new clock-in QR for ' + (e.name || 'this person') +
+                     ' — replaces their current one';
+        slip.addEventListener('click', function(){ openSlips(e.extId); });
+        tdAct.appendChild(slip);
+      }
+      tr.appendChild(tdAct);
+      body.appendChild(tr);
+    });
+
+    // Department suggestions: FairLeave teams plus whatever the Scheduler already uses.
+    var dl = $('teamList');
+    dl.textContent = '';
+    var seen = {};
+    teams.forEach(function(t){ if (t.name) seen[t.name] = 1; });
+    employees.forEach(function(e){ if (e.team) seen[e.team] = 1; });
+    Object.keys(seen).forEach(function(nm){ var o = el('option'); o.value = nm; dl.appendChild(o); });
+  }
+
+  /**
+   * Open the Zanna Clock's slip-printing page in a new tab.
+   *
+   * A link, not an integration. The page gates itself with the CLOCK's
+   * management PIN — a different door from this console's Admin_PIN, because
+   * they are different systems and pretending otherwise would mean putting one
+   * PIN behind the other. Nothing about tokens or QR encoding lives here.
+   */
+  function openSlips(extId){
+    var url = CLOCK_EXEC_URL + '?qp=print' + (extId ? '&id=' + encodeURIComponent(extId) : '');
+    window.open(url, '_blank', 'noopener');
+  }
+  $('slipsEmp').addEventListener('click', function(){ openSlips(''); });
+
+  $('empSearch').addEventListener('input', renderEmployees);
+  $('showInactive').addEventListener('change', renderEmployees);
+  $('reloadEmp').addEventListener('click', loadEmployees);
+  $('addEmp').addEventListener('click', function(){ openEmp(null); });
+
+  function openEmp(e){
+    editing = e;
+    var isNew = !e;
+    $('empModalTitle').textContent = isNew ? 'Add employee' : 'Edit employee';
+    $('fName').value  = e ? e.name : '';
+    $('fId').value    = e ? e.extId : '';
+    $('fEmail').value = e ? e.email : '';
+    $('fTeam').value  = e ? e.team : '';
+    $('fRole').value  = '';
+    $('fStart').value = '';
+    $('fEnt').value   = e && !e.pendingImport ? e.entitlement : '';
+    $('fActive').value = e && !e.active ? 'no' : 'yes';
+
+    $('entHint').textContent = entOwner === 'scheduler'
+      ? 'The Scheduler owns this field — written there, so the next sync cannot overwrite it.'
+      : 'Stored in FairLeave. The Scheduler has no entitlement column, and its sync leaves this value alone.';
+
+    $('emailHint').textContent = emailOwner === 'scheduler'
+      ? 'Written to the Scheduler.'
+      : 'Stored in FairLeave — the Scheduler has no Email column. Used for swap notifications.';
+
+    // Role and Start Date only exist if the Scheduler has those columns.
+    $('fRole').closest('.field').hidden = !available.role;
+    $('fStart').closest('.field').hidden = !available.start;
+
+    // Both of these need a FairLeave record, which a not-yet-imported person lacks.
+    var hasFl = !!(e && e.id);
+    $('empRegen').hidden = !hasFl;
+    $('empArchive').hidden = !hasFl || !e.active;
+    $('empArchiveNote').hidden = !hasFl;
+
+    // Deliberately NOT gated on hasFl. The kiosk PIN lives in the clock, not in
+    // FairLeave, so someone who has not been imported yet can still have one —
+    // and they are exactly the person most likely to be stuck at the kiosk.
+    // Only a brand-new record, not yet saved anywhere, has nobody to reset.
+    var canResetPin = !isNew && !!(e && (e.extId || e.name));
+    $('empResetPin').hidden = !canResetPin;
+    $('empPinNote').hidden  = !canResetPin;
+
+    $('empModal').classList.add('open');
+    setTimeout(function(){ $('fName').focus(); }, 40);
+  }
+  function closeEmp(){ $('empModal').classList.remove('open'); editing = null; }
+
+  $('empClose').addEventListener('click', closeEmp);
+  $('empCancel').addEventListener('click', closeEmp);
+  $('empModal').addEventListener('click', function(e){ if (e.target.id === 'empModal') closeEmp(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeEmp(); });
+
+  $('empSave').addEventListener('click', function(){
+    var name = $('fName').value.trim();
+    if (!name) { toast('Name is required.', true); return; }
+
+    var payload = {
+      extId: $('fId').value.trim(),
+      name: name,
+      email: $('fEmail').value.trim(),
+      team: $('fTeam').value.trim(),
+      role: $('fRole').value.trim(),
+      start: $('fStart').value,
+      active: $('fActive').value === 'yes',
+      entitlement: $('fEnt').value
+    };
+
+    $('empSave').disabled = true;
+    call('employees.save', { employee: payload }).then(function(res){
+      $('empSave').disabled = false;
+      if (!res || !res.ok) { fail(res, 'Could not save.'); return; }
+      var msg = (res.created ? 'Added ' : 'Updated ') + name + '.';
+      if (res.entitlementWrittenTo === 'scheduler') msg += ' Entitlement saved to the Scheduler.';
+      if (!res.syncOk) msg += ' Saved, but the sync did not run — press Sync from Scheduler.';
+      toast(msg, !res.syncOk);
+      closeEmp();
+      loadEmployees();
+      loaded.teams = false;   // sync may have created a new team
+    }).catch(function(){ $('empSave').disabled = false; });
+  });
+
+  $('empResetPin').addEventListener('click', function(){
+    if (!editing) return;
+    if (!confirm('Clear ' + editing.name + '\u2019s kiosk PIN?\n\nThey will be asked to choose a new one the next time they tap their name at the kiosk. Their clocking history is untouched.')) return;
+    var b = $('empResetPin');
+    b.disabled = true;
+    call('employees.resetClockPin', { emp: { id: editing.id || '', extId: editing.extId || '', name: editing.name || '' } })
+      .then(function(res){
+        b.disabled = false;
+        if (!res || !res.ok) { fail(res, 'Could not reset the kiosk PIN.'); return; }
+        toast(res.message || ('PIN cleared for ' + (res.name || editing.name) + '.'));
+      }).catch(function(){ b.disabled = false; });
+  });
+
+  $('empRegen').addEventListener('click', function(){
+    if (!editing || !editing.id) return;
+    if (!confirm('Reissue ' + editing.name + '\u2019s private FairLeave link?\n\nTheir current link stops working immediately. Share the new one from inside FairLeave using the QR code.')) return;
+    call('employees.regenToken', { id: editing.id }).then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not reissue the link.'); return; }
+      toast(res.message || 'New link issued.');
+    }).catch(function(){});
+  });
+
+  $('empArchive').addEventListener('click', function(){
+    if (!editing || !editing.id) return;
+    if (!confirm('Archive ' + editing.name + '?\n\nThey are marked inactive in the Scheduler, their approved bookings are cancelled and any pending swaps are closed. Nothing is deleted.')) return;
+    call('employees.archive', { id: editing.id }).then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not archive.'); return; }
+      toast('Archived — ' + (res.scheduler || 'done') + '.');
+      closeEmp();
+      loadEmployees();
+    }).catch(function(){});
+  });
+
+  $('syncEmp').addEventListener('click', function(){
+    $('syncEmp').disabled = true;
+    call('employees.sync').then(function(res){
+      $('syncEmp').disabled = false;
+      if (!res || !res.ok) { fail(res, 'Sync failed.'); return; }
+      toast(res.summary || 'Sync complete.');
+      loadEmployees();
+      loaded.teams = false;
+    }).catch(function(){ $('syncEmp').disabled = false; });
+  });
+
+  /* ── Teams ──────────────────────────────────────────── */
+  function loadTeams(){
+    loaded.teams = true;
+    call('teams.list').then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not load teams.'); return; }
+      teams = res.teams || [];
+      var body = $('teamBody');
+      body.textContent = '';
+      $('teamEmpty').hidden = teams.length > 0;
+
+      teams.forEach(function(t){
+        var tr = el('tr');
+        tr.appendChild(el('td', t.name));
+        tr.appendChild(el('td', String(t.members)));
+
+        var tdCap = el('td');
+        var inp = document.createElement('input');
+        inp.type = 'number'; inp.min = '1'; inp.max = '99'; inp.value = t.max;
+        inp.style.cssText = 'width:100px;font:inherit;padding:6px 9px;border:1px solid var(--grout);border-radius:7px;background:var(--plaster)';
+        tdCap.appendChild(inp);
+        tr.appendChild(tdCap);
+
+        var tdAct = el('td');
+        var save = el('button', 'Save', 'btn sm');
+        save.addEventListener('click', function(){
+          save.disabled = true;
+          call('teams.save', { team: { id: t.id, name: t.name, max: inp.value } }).then(function(r){
+            save.disabled = false;
+            if (!r || !r.ok) { fail(r, 'Could not save the team.'); return; }
+            toast(t.name + ': max ' + inp.value + ' off per working day.');
+            loadTeams();
+          }).catch(function(){ save.disabled = false; });
+        });
+        tdAct.appendChild(save);
+
+        var del = el('button', 'Delete', 'btn ghost sm');
+        del.style.marginLeft = '6px';
+        del.addEventListener('click', function(){
+          if (t.members > 0) { toast('Move its ' + t.members + ' member' + (t.members === 1 ? '' : 's') + ' to another team first.', true); return; }
+          if (!confirm('Delete the team "' + t.name + '"?')) return;
+          call('teams.delete', { id: t.id }).then(function(r){
+            if (!r || !r.ok) { fail(r, 'Could not delete the team.'); return; }
+            toast('Deleted ' + t.name + '.');
+            loadTeams();
+          }).catch(function(){});
+        });
+        tdAct.appendChild(del);
+        tr.appendChild(tdAct);
+        body.appendChild(tr);
+      });
+    }).catch(function(){});
+  }
+
+  $('reloadTeams').addEventListener('click', loadTeams);
+  $('addTeam').addEventListener('click', function(){
+    var name = prompt('New team or department name:');
+    if (!name || !name.trim()) return;
+    var cap = prompt('Maximum people off per working day:', '1');
+    if (cap === null) return;
+    call('teams.save', { team: { name: name.trim(), max: cap.trim() || '1' } }).then(function(r){
+      if (!r || !r.ok) { fail(r, 'Could not add the team.'); return; }
+      toast('Added ' + name.trim() + '.');
+      loadTeams();
+    }).catch(function(){});
+  });
+
+  /* ── Blackouts ──────────────────────────────────────── */
+  function loadBlackouts(){
+    loaded.blackouts = true;
+    call('blackouts.list').then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not load blackouts.'); return; }
+      blackouts = res.blackouts || [];
+      var body = $('boBody');
+      body.textContent = '';
+      $('boEmpty').hidden = blackouts.length > 0;
+
+      blackouts.forEach(function(b){
+        var tr = el('tr');
+        tr.appendChild(el('td', b.start));
+        tr.appendChild(el('td', b.end));
+        tr.appendChild(el('td', b.reason || '—'));
+        var td = el('td');
+        var del = el('button', 'Remove', 'btn ghost sm');
+        del.addEventListener('click', function(){
+          if (!confirm('Remove the blackout ' + b.start + ' → ' + b.end + '?\n\nStaff will be able to book those dates immediately.')) return;
+          call('blackouts.delete', { id: b.id }).then(function(r){
+            if (!r || !r.ok) { fail(r, 'Could not remove it.'); return; }
+            toast('Blackout removed.');
+            loadBlackouts();
+          }).catch(function(){});
+        });
+        td.appendChild(del);
+        tr.appendChild(td);
+        body.appendChild(tr);
+      });
+      touchSession();
+    }).catch(function(){});
+  }
+
+  $('reloadBo').addEventListener('click', loadBlackouts);
+  $('addBo').addEventListener('click', function(){
+    var s = $('boStart').value, e = $('boEnd').value;
+    if (!s || !e) { toast('Pick both a start and an end date.', true); return; }
+    if (s > e) { toast('The end date is before the start date.', true); return; }
+    call('blackouts.save', { blackout: { start:s, end:e, reason: $('boReason').value.trim() } }).then(function(r){
+      if (!r || !r.ok) { fail(r, 'Could not add the blackout.'); return; }
+      toast('Blackout added.');
+      $('boStart').value = ''; $('boEnd').value = ''; $('boReason').value = '';
+      loadBlackouts();
+    }).catch(function(){});
+  });
+
+  $('importLeave').addEventListener('click', function(){
+    if (!confirm('Import approved leave that already exists in the Shift Scheduler?\n\nSafe to run more than once — anything FairLeave pushed itself is skipped.')) return;
+    $('importLeave').disabled = true;
+    call('leave.import').then(function(res){
+      $('importLeave').disabled = false;
+      if (!res || !res.ok) { fail(res, 'Import failed.'); return; }
+      toast(res.summary || 'Import complete.');
+    }).catch(function(){ $('importLeave').disabled = false; });
+  });
+
+  /* ── Settings ───────────────────────────────────────── */
+  function loadSettings(){
+    loaded.settings = true;
+    call('settings.get').then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not load settings.'); return; }
+      settings = res.settings || [];
+      var grid = $('setGrid');
+      grid.textContent = '';
+      $('setEmpty').hidden = settings.length > 0;
+
+      settings.forEach(function(st, i){
+        var f = el('div', null, 'field');
+        var id = 'set_' + i;
+        var lab = el('label', st.key);
+        lab.setAttribute('for', id);
+        f.appendChild(lab);
+
+        var inp = document.createElement('input');
+        inp.id = id; inp.type = 'text'; inp.dataset.key = st.key;
+        if (st.secret) { inp.value = ''; inp.placeholder = 'hidden — change it in the sheet'; inp.readOnly = true; }
+        else { inp.value = st.value == null ? '' : String(st.value); }
+        f.appendChild(inp);
+
+        if (st.secret) f.appendChild(el('p', 'Credential — never shown or editable from here.', 'hint'));
+        else if (st.note) f.appendChild(el('p', st.note, 'hint'));
+        grid.appendChild(f);
+      });
+    }).catch(function(){});
+  }
+
+  $('reloadSettings').addEventListener('click', loadSettings);
+  $('saveSettings').addEventListener('click', function(){
+    var payload = [];
+    settings.forEach(function(st, i){
+      if (st.secret) return;
+      var inp = $('set_' + i);
+      if (!inp) return;
+      if (String(st.value == null ? '' : st.value) !== inp.value) payload.push({ key: st.key, value: inp.value });
+    });
+    if (!payload.length) { toast('Nothing changed.'); return; }
+    call('settings.save', { settings: payload }).then(function(r){
+      if (!r || !r.ok) { fail(r, 'Could not save settings.'); return; }
+      toast('Saved ' + payload.length + ' setting' + (payload.length === 1 ? '' : 's') + '.');
+      loadSettings();
+    }).catch(function(){});
+  });
+
+  /* ── Scheduler settings ─────────────────────────────── */
+  // The catalogue is the console's opinion about the Scheduler/Clock Config tab:
+  // what each key means, what shape a legal value has, and what breaks if it is
+  // wrong. Anything found in Config that is NOT listed here still shows up, as a
+  // plain text field under "Other keys" — the sheet is never the loser to this list.
+  var SCHED_GROUPS = [
+    { id:'breaks', title:'Break types',
+      why:'Every key beginning BREAK_ becomes a button on the kiosk. Minutes are the allowance before the break counts as an overrun.',
+      keys:[
+        { key:'BREAK_15', label:'Short break', type:'number', unit:'minutes', min:0, max:240, def:'15',
+          hint:'☕ The standard short break offered on the kiosk.' },
+        { key:'BREAK_30', label:'Meal break', type:'number', unit:'minutes', min:0, max:240, def:'30',
+          hint:'🍽 The standard meal break.' },
+        { key:'BREAK_COMFORT', label:'Comfort break', type:'number', unit:'minutes', min:0, max:240, def:'0',
+          hint:'🚻 Set 0 for untimed — recorded, but never flagged as an overrun.' }
+      ] },
+
+    { id:'pay', title:'Pay treatment',
+      why:'How break time is deducted when Payroll is rebuilt. Changing this changes what people are paid — it does not rewrite history until you rebuild.',
+      keys:[
+        { key:'PAY_BREAKS', label:'Break pay mode', type:'select', def:'unpaid',
+          options:[
+            { value:'unpaid',    label:'unpaid — all break time deducted' },
+            { value:'paid',      label:'paid — no deduction' },
+            { value:'threshold', label:'threshold — first N minutes of each break paid' }
+          ],
+          hint:'The only three values Payroll understands. Anything else and payroll totals come out as zero.',
+          danger:true,
+          confirm:'Change how breaks are paid?\n\nThis changes net paid hours for everyone the next time payroll is rebuilt.' },
+        { key:'PAID_BREAK_MAX_MINS', label:'Paid minutes per break', type:'number', unit:'minutes', min:0, max:240, def:'0',
+          hint:'Only used in threshold mode. A 30-minute break with this at 10 deducts 20.',
+          dependsOn:{ key:'PAY_BREAKS', value:'threshold' } }
+      ] },
+
+    { id:'week', title:'Working week & sync',
+      why:'Which days count as working days, and when the overnight staff sync runs.',
+      keys:[
+        { key:'WORK_SATURDAY', label:'Saturday is a working day', type:'bool', def:'TRUE',
+          hint:'Mon–Sat is the locked default for this business. FairLeave counts capacity and entitlement per WORKING day, so turning this off changes how every leave request is costed.',
+          danger:true,
+          confirm:'Turn Saturday off as a working day?\n\nThis is a locked decision for Zanna Cookhouse (Mon–Sat). FairLeave will stop counting Saturdays against entitlement and against team capacity.' },
+        { key:'SYNC_HOUR', label:'Daily staff sync hour', type:'number', unit:'0–23, Dublin', min:0, max:23, def:'5',
+          hint:'The hour the Scheduler roster is pushed to the clock. 5 = 05:00. Changing this reinstalls the trigger.' },
+        { key:'NO_SATURDAY_HONOURED', label:'Honour per-person NoSaturday', type:'bool', def:'TRUE',
+          hint:'When on, a person with NoSaturday = TRUE is exempt even while the business works Saturdays.',
+          unread:true }
+      ] },
+
+    { id:'defaults', title:'New-employee defaults',
+      why:'What the Add employee form and the auto-numbering use when a field is left blank. Existing people are never touched.',
+      keys:[
+        { key:'DEFAULT_CONTRACTED_DAYS', label:'Contracted days', type:'number', unit:'per week', min:0, max:7, def:'5',
+          hint:'Prefilled for a new starter. 5 = full time here.' , unread:true },
+        { key:'DEFAULT_ANNUAL_LEAVE_DAYS', label:'Annual leave entitlement', type:'number', unit:'days', min:0, max:60, def:'28',
+          hint:'Prefilled for a new starter, and used by FairLeave as the opening balance.' , unread:true },
+        { key:'DEFAULT_NO_SATURDAY', label:'Default NoSaturday', type:'bool', def:'FALSE',
+          hint:'Whether a new starter is Saturday-exempt unless you say otherwise.' , unread:true },
+        { key:'EMPLOYEE_ID_PREFIX', label:'Employee ID prefix', type:'text', maxlength:4, def:'E',
+          hint:'The letter part of E015. Letters only — hyphens and spaces break the clock’s name match.',
+          pattern:/^[A-Za-z]{1,4}$/, patternMsg:'Prefix must be 1–4 letters, no digits, spaces or hyphens.' , unread:true },
+        { key:'EMPLOYEE_ID_DIGITS', label:'Employee ID digits', type:'number', unit:'digits', min:1, max:6, def:'3',
+          hint:'3 gives E015. Auto-numbering pads to this width.' , unread:true }
+      ] },
+
+    { id:'links', title:'System links',
+      why:'The IDs that wire the three systems together. Wrong here and syncs fail silently — run the diagnostic below before assuming the code is broken.',
+      keys:[
+        { key:'SCHEDULER_SHEET_ID', label:'Shift Scheduler sheet ID', type:'text', maxlength:80, def:'',
+          hint:'The long ID out of the Scheduler sheet URL — the ID only, not the whole URL. The clock and FairLeave each keep their own copy of this; the server flags it above if the two disagree.',
+          danger:true,
+          pattern:/^[A-Za-z0-9_-]{20,}$/,
+          patternMsg:'That does not look like a sheet ID. Paste the part of the URL between /d/ and /edit.',
+          confirm:'Repoint SCHEDULER_SHEET_ID?\n\nEvery sync, import and leave push follows this ID. If it is wrong, staff quietly stop syncing to the clock.' },
+        { key:'CLOCK_SHEET_ID', label:'Zanna Clock sheet ID', type:'text', maxlength:80, def:'',
+          hint:'Where Events, Sessions and Payroll live. Leave blank if the clock is this same spreadsheet.',
+          pattern:/^[A-Za-z0-9_-]{20,}$/,
+          patternMsg:'That does not look like a sheet ID.' }
+      ] }
+  ];
+
+  var schedValues = {}, schedOriginal = {}, schedMeta = {}, schedExtra = [], schedReady = false;
+
+  function schedNorm(v){ return v == null ? '' : String(v).trim(); }
+
+  function loadScheduler(){
+    loaded.scheduler = true;
+    call('scheduler.settings.get').then(function(res){
+      var unknown = res && res.error &&
+        /unknown[_ ](op|action)|unsupported[_ ]op|not[_ ]implemented|bad[_ ]op/i.test(String(res.error));
+      $('schedNoOp').hidden = !unknown;
+      if (!res || !res.ok) {
+        schedReady = false;
+        if (!unknown) fail(res, 'Could not load the scheduler settings.');
+        $('schedEmpty').hidden = false;
+        $('schedGroups').textContent = '';
+        $('schedSaveBar').hidden = true;
+        return;
+      }
+      schedReady = true;
+      $('schedEmpty').hidden = true;
+      schedValues = {};
+      schedMeta = res.meta || {};
+      (res.settings || []).forEach(function(s){
+        schedValues[s.key] = s.secret ? '' : schedNorm(s.value);
+        schedMeta[s.key] = { secret: !!s.secret, note: s.note || '',
+                             origin: s.origin || '', shared: !!s.shared, isNew: !!s.isNew };
+      });
+      schedOriginal = Object.assign({}, schedValues);
+
+      $('schedSource').querySelector('b').textContent = res.source || 'Scheduler Config tab';
+      $('schedTz').querySelector('b').textContent = res.timezone || 'unknown';
+      if (res.timezone && res.timezone !== 'Europe/Dublin') {
+        showSchedWarn('This script project’s timezone is ' + res.timezone + ', not Europe/Dublin — times will be off. Fix it in Apps Script → Project Settings. Note this is FairLeave’s timezone; if the clock runs in its own script project, check that one separately.');
+      } else if (res.warning) {
+        showSchedWarn(res.warning);
+      } else {
+        $('schedWarn').hidden = true;
+      }
+      renderTriggers(res.triggers || {});
+      renderScheduler();
+    }).catch(function(){});
+  }
+
+  function showSchedWarn(msg){
+    var n = $('schedWarn');
+    n.textContent = msg;
+    n.hidden = false;
+  }
+
+  function renderTriggers(t){
+    var pairs = [ ['trigSync', 'dailySync', 'installSyncTrigger', 'daily staff sync'],
+                  ['trigSessions', 'hourlySessions', 'installSessionsTrigger', 'hourly sessions rebuild'] ];
+    pairs.forEach(function(p){
+      var host = $(p[0]);
+      var b = host.querySelector('b');
+      var raw = t[p[1]];
+      var on = raw === true;
+      // undefined ≠ false: the clock may be a separate script project, whose
+      // triggers this one genuinely cannot see. Saying "not installed" there
+      // would send someone off installing a second, duplicate trigger.
+      b.textContent = raw === undefined ? 'not visible from here' : (on ? 'installed' : 'not installed');
+      var old = host.querySelector('button');
+      if (old) old.remove();
+      if (raw === false) {
+        var btn = el('button', 'Install', 'btn sm');
+        btn.style.marginLeft = '4px';
+        btn.addEventListener('click', function(){ runSchedJob(p[2], 'Installing the ' + p[3] + '…', btn); });
+        host.appendChild(btn);
+      }
+    });
+  }
+
+  function schedFindSpec(key){
+    for (var i = 0; i < SCHED_GROUPS.length; i++) {
+      var ks = SCHED_GROUPS[i].keys;
+      for (var j = 0; j < ks.length; j++) if (ks[j].key === key) return ks[j];
+    }
+    return null;
+  }
+
+  function renderScheduler(){
+    var host = $('schedGroups');
+    host.textContent = '';
+
+    // Keys present in the sheet that the catalogue has never heard of. These are
+    // shown rather than dropped — a key we do not recognise is still a key that
+    // something reads.
+    var known = {};
+    SCHED_GROUPS.forEach(function(g){ g.keys.forEach(function(k){ known[k.key] = 1; }); });
+    schedExtra = Object.keys(schedValues).filter(function(k){
+      return !known[k] && k.indexOf('BREAK_') !== 0;
+    }).sort();
+    var customBreaks = Object.keys(schedValues).filter(function(k){
+      return k.indexOf('BREAK_') === 0 && !known[k];
+    }).sort();
+
+    SCHED_GROUPS.forEach(function(g){
+      var head = el('div', null, 'grouphead');
+      head.appendChild(el('h3', g.title));
+      head.appendChild(el('p', g.why, 'why'));
+      host.appendChild(head);
+
+      var grid = el('div', null, 'grid');
+      var keys = g.keys.slice();
+      if (g.id === 'breaks') {
+        customBreaks.forEach(function(k){
+          keys.push({ key:k, label:k.replace(/^BREAK_/, '').replace(/_/g, ' ').toLowerCase(),
+                      type:'number', unit:'minutes', min:0, max:240, def:'0',
+                      hint:'Custom break type added from this console.' });
+        });
+      }
+      keys.forEach(function(spec){ grid.appendChild(schedField(spec)); });
+      host.appendChild(grid);
+
+      if (g.id === 'breaks') {
+        var row = el('div', null, 'runrow');
+        var add = el('button', '+ Add break type', 'btn ghost sm');
+        add.addEventListener('click', addBreakType);
+        row.appendChild(add);
+        host.appendChild(row);
+      }
+    });
+
+    if (schedExtra.length) {
+      var head2 = el('div', null, 'grouphead');
+      head2.appendChild(el('h3', 'Other keys in Config'));
+      head2.appendChild(el('p', 'Found in the sheet but not part of the known catalogue — shown as-is so nothing is hidden from you. Credential-shaped keys stay masked.', 'why'));
+      host.appendChild(head2);
+      var grid2 = el('div', null, 'grid');
+      schedExtra.forEach(function(k){
+        grid2.appendChild(schedField({ key:k, label:k, type:'text', maxlength:200, def:'' }));
+      });
+      host.appendChild(grid2);
+    }
+
+    applyDependencies();
+    updateDirty();
+  }
+
+  function schedField(spec){
+    var f = el('div', null, 'field');
+    f.dataset.key = spec.key;
+    var id = 'sched_' + spec.key;
+    var meta = schedMeta[spec.key] || {};
+
+    var lab = el('label', spec.label || spec.key);
+    lab.setAttribute('for', id);
+    if (spec.unit) lab.appendChild(el('span', '(' + spec.unit + ')', 'unit'));
+    if ((spec.label || '') !== spec.key) lab.appendChild(el('span', spec.key, 'keyname'));
+    f.appendChild(lab);
+
+    var inp;
+    if (spec.type === 'select' || spec.type === 'bool') {
+      inp = document.createElement('select');
+      var opts = spec.type === 'bool'
+        ? [{ value:'TRUE', label:'Yes' }, { value:'FALSE', label:'No' }]
+        : spec.options.slice();
+      var stored = schedNorm(schedValues[spec.key]);
+      // Blank must read as blank. Defaulting the dropdown to "unpaid" when the
+      // sheet has no PAY_BREAKS row at all shows a setting that is not there —
+      // and payroll returns zero hours for exactly that reason.
+      if (!stored) opts.unshift({ value:'', label:'— not set' + (spec.def ? ' (code falls back to ' + spec.def + ')' : '') + ' —' });
+      opts.forEach(function(o){
+        var op = document.createElement('option');
+        op.value = o.value; op.textContent = o.label;
+        inp.appendChild(op);
+      });
+      var cur = stored;
+      // Only coerce a value that is unambiguously a boolean. Anything else stays
+      // visible as itself — silent coercion is how a broken Config row hides for
+      // months while the UI cheerfully reports "No".
+      if (spec.type === 'bool' && /^(true|yes|y|1|false|no|n|0)$/i.test(cur)) {
+        cur = /^(true|yes|y|1)$/i.test(cur) ? 'TRUE' : 'FALSE';
+      }
+      if (!Array.prototype.some.call(inp.options, function(o){ return o.value === cur; })) {
+        var ghost = document.createElement('option');
+        ghost.value = cur;
+        ghost.textContent = cur + '  ← not a recognised value';
+        inp.appendChild(ghost);
+      }
+      inp.value = cur;
+    } else {
+      inp = document.createElement('input');
+      inp.type = spec.type === 'number' ? 'number' : 'text';
+      if (spec.type === 'number') {
+        if (spec.min != null) inp.min = String(spec.min);
+        if (spec.max != null) inp.max = String(spec.max);
+        inp.step = '1';
+      }
+      if (spec.maxlength) inp.maxLength = spec.maxlength;
+      inp.value = schedNorm(schedValues[spec.key]);
+      if (!inp.value && spec.def) inp.placeholder = spec.def + '  (default)';
+    }
+
+    inp.id = id;
+    inp.dataset.key = spec.key;
+    if (meta.secret) { inp.value = ''; inp.readOnly = true; inp.disabled = true;
+      inp.placeholder = 'hidden — change it in the sheet'; f.classList.add('locked'); }
+    inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', function(){
+      schedValues[spec.key] = inp.value;
+      if (spec.key === 'PAY_BREAKS') applyDependencies();
+      updateDirty();
+    });
+    f.appendChild(inp);
+
+    var hint = meta.secret ? 'Credential — never shown or editable from here.'
+             : (spec.hint || meta.note || '');
+    if (hint) f.appendChild(el('p', hint, 'hint'));
+    // Which sheet this row actually lives in. Without it, "I changed it and
+    // nothing happened" is unanswerable.
+    if (meta.origin) {
+      f.appendChild(el('p', (meta.isNew ? 'Not set in any sheet yet — saving creates the row in the '
+                                        : 'Stored in the ') + meta.origin + ' Config tab' +
+        (meta.shared ? ' — the same row the Settings tab edits.' : '.'), 'hint'));
+    }
+    if (spec.danger) f.appendChild(el('p', '⚠ Changing this affects live behaviour — you will be asked to confirm.', 'hint'));
+    // The console can write any key. It cannot make the Scheduler read one.
+    // A field that looks live but is inert is worse than no field at all —
+    // someone sets it, trusts it, and never finds out why nothing changed.
+    if (spec.unread) {
+      var u = el('p', '⚑ Stored, but nothing reads it yet — it takes effect once the Scheduler code is updated to use this key.', 'hint');
+      u.style.color = 'var(--glaze-b)';
+      f.appendChild(u);
+    }
+    return f;
+  }
+
+  function applyDependencies(){
+    SCHED_GROUPS.forEach(function(g){
+      g.keys.forEach(function(spec){
+        if (!spec.dependsOn) return;
+        var f = document.querySelector('#schedGroups .field[data-key="' + spec.key + '"]');
+        if (!f) return;
+        var inp = f.querySelector('input,select');
+        var on = schedNorm(schedValues[spec.dependsOn.key] ||
+                 (schedFindSpec(spec.dependsOn.key) || {}).def) === spec.dependsOn.value;
+        // Left visible but inert: hiding it makes people think the setting vanished.
+        if (inp) inp.disabled = !on;
+        f.classList.toggle('locked', !on);
+      });
+    });
+  }
+
+  function schedDiff(){
+    var out = [];
+    Object.keys(schedValues).forEach(function(k){
+      if ((schedMeta[k] || {}).secret) return;
+      if (schedNorm(schedValues[k]) !== schedNorm(schedOriginal[k])) {
+        out.push({ key:k, value: schedNorm(schedValues[k]) });
+      }
+    });
+    return out;
+  }
+
+  function updateDirty(){
+    var d = schedDiff();
+    $('schedSaveBar').hidden = !schedReady;
+    $('schedDirty').textContent = d.length
+      ? d.length + ' unsaved change' + (d.length === 1 ? '' : 's') + ': ' + d.map(function(x){ return x.key; }).join(', ')
+      : 'No changes';
+    $('saveSched').disabled = d.length === 0;
+    document.querySelectorAll('#schedGroups .field').forEach(function(f){
+      var k = f.dataset.key;
+      f.classList.toggle('dirty', schedNorm(schedValues[k]) !== schedNorm(schedOriginal[k]));
+    });
+  }
+
+  function schedValidate(d){
+    var bad = [];
+    d.forEach(function(c){
+      var spec = schedFindSpec(c.key);
+      if (!spec) return;
+      if (spec.type === 'number' && c.value !== '') {
+        var n = Number(c.value);
+        if (!isFinite(n) || n % 1 !== 0) bad.push(spec.label + ' must be a whole number.');
+        else if (spec.min != null && n < spec.min) bad.push(spec.label + ' cannot be below ' + spec.min + '.');
+        else if (spec.max != null && n > spec.max) bad.push(spec.label + ' cannot be above ' + spec.max + '.');
+      }
+      if (spec.type === 'select' && c.value &&
+          !spec.options.some(function(o){ return o.value === c.value; })) {
+        bad.push(spec.label + ': "' + c.value + '" is not one of ' +
+                 spec.options.map(function(o){ return o.value; }).join(', ') + '.');
+      }
+      if (spec.pattern && c.value && !spec.pattern.test(c.value)) bad.push(spec.patternMsg || (spec.label + ' is not in the expected format.'));
+    });
+    // Cross-field: threshold mode with nothing paid is almost always a half-done edit.
+    var mode = schedNorm(schedValues.PAY_BREAKS);
+    var paid = schedNorm(schedValues.PAID_BREAK_MAX_MINS);
+    if (mode === 'threshold' && (paid === '' || Number(paid) === 0)) {
+      bad.push('Threshold mode with 0 paid minutes behaves exactly like "unpaid" — set the paid minutes, or pick unpaid.');
+    }
+    return bad;
+  }
+
+  $('reloadSched').addEventListener('click', loadScheduler);
+  $('revertSched').addEventListener('click', function(){
+    schedValues = Object.assign({}, schedOriginal);
+    renderScheduler();
+    toast('Reverted to the saved values.');
+  });
+
+  $('saveSched').addEventListener('click', function(){
+    var d = schedDiff();
+    if (!d.length) { toast('Nothing changed.'); return; }
+
+    var bad = schedValidate(d);
+    if (bad.length) { toast(bad[0], true); return; }
+
+    // One confirm per dangerous key, in the order they appear — a single blanket
+    // "are you sure?" trains people to click through it.
+    for (var i = 0; i < d.length; i++) {
+      var spec = schedFindSpec(d[i].key);
+      if (spec && spec.confirm && !confirm(spec.confirm + '\n\nNew value: ' + (d[i].value || '(blank)'))) return;
+    }
+
+    $('saveSched').disabled = true;
+    call('scheduler.settings.save', { settings: d }).then(function(r){
+      $('saveSched').disabled = false;
+      if (!r || !r.ok) { fail(r, 'Could not save the scheduler settings.'); return; }
+      var saved = typeof r.saved === 'number' ? r.saved : d.length;
+      var msg = 'Saved ' + saved + ' setting' + (saved === 1 ? '' : 's') + '.';
+      if (r.triggerReinstalled) msg += ' Sync trigger reinstalled for ' + r.triggerReinstalled + '.';
+      if (r.rebuildNeeded) msg += ' Rebuild payroll for this to affect paid hours.';
+      // A partial save that reports itself as a clean success is worse than a
+      // failure — the rejected keys look saved until someone checks the sheet.
+      if (r.rejected && r.rejected.length) {
+        toast(msg + ' NOT saved: ' + r.rejected.join('; '), true);
+      } else {
+        toast(msg);
+      }
+      loadScheduler();
+    }).catch(function(){ $('saveSched').disabled = false; });
+  });
+
+  function addBreakType(){
+    var name = prompt('Name for the new break type (letters and numbers, e.g. SMOKE or 45):');
+    if (!name || !name.trim()) return;
+    var key = 'BREAK_' + name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+    if (key === 'BREAK_') { toast('That name has no usable characters.', true); return; }
+    if (Object.prototype.hasOwnProperty.call(schedValues, key)) { toast(key + ' already exists.', true); return; }
+    var mins = prompt('Minutes allowed for ' + key + ' (0 = untimed):', '15');
+    if (mins === null) return;
+    mins = mins.trim();
+    if (!/^\d{1,3}$/.test(mins)) { toast('Minutes must be a whole number.', true); return; }
+    schedValues[key] = mins;
+    renderScheduler();
+    toast(key + ' added — press Save changes to write it to the sheet.');
+  }
+
+  /* Run-now jobs */
+  function runSchedJob(job, busyMsg, btn){
+    if (btn) btn.disabled = true;
+    toast(busyMsg);
+    call('scheduler.action.run', { job: job }).then(function(r){
+      if (btn) btn.disabled = false;
+      if (!r || !r.ok) { fail(r, 'That job did not complete.'); return; }
+      toast(r.summary || 'Done.');
+      if (r.triggers) renderTriggers(r.triggers);
+    }).catch(function(){ if (btn) btn.disabled = false; });
+  }
+
+  $('runSyncStaff').addEventListener('click', function(){
+    runSchedJob('syncStaff', 'Syncing staff to the clock…', $('runSyncStaff'));
+  });
+  // Same job as the Scheduler tab's button, put where the change is actually
+  // made. Saving an employee updates the Scheduler and FairLeave but NOT the
+  // clock, and a button on a different tab is a step people forget — which is
+  // how someone ends up unable to clock in on their first morning.
+  $('syncClock').addEventListener('click', function(){
+    runSchedJob('syncStaff', 'Syncing staff to the clock…', $('syncClock'));
+    // The roster shown here comes from FairLeave, not the clock, so there is
+    // nothing on this screen to refresh afterwards.
+  });
+  $('runSessions').addEventListener('click', function(){
+    runSchedJob('rebuildSessions', 'Rebuilding sessions…', $('runSessions'));
+  });
+  $('runPayroll').addEventListener('click', function(){
+    if (!confirm('Rebuild payroll now?\n\nNet paid hours are recalculated using the current break pay mode.')) return;
+    runSchedJob('rebuildPayroll', 'Rebuilding payroll…', $('runPayroll'));
+  });
+  $('schedDiag').addEventListener('click', function(){
+    call('scheduler.diagnose').then(function(res){
+      $('schedDiagOut').hidden = false;
+      $('schedDiagPre').textContent = JSON.stringify(res, null, 2);
+    }).catch(function(){});
+  });
+
+  /* ── App URLs ───────────────────────────────────────── */
+  function loadApps(){
+    loaded.apps = true;
+    call('panel.get').then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not load app URLs.'); return; }
+      apps = res.apps || {};
+      knownKeys = res.knownKeys || Object.keys(apps);
+
+      var grid = $('appGrid');
+      grid.textContent = '';
+      var allKeys = knownKeys.slice();
+      Object.keys(apps).forEach(function(k){ if (allKeys.indexOf(k) === -1) allKeys.push(k); });
+
+      allKeys.forEach(function(k){
+        var f = el('div', null, 'field');
+        var lab = el('label', APP_LABELS[k] || k);
+        lab.setAttribute('for', 'app_' + k);
+        f.appendChild(lab);
+        var inp = document.createElement('input');
+        inp.id = 'app_' + k; inp.type = 'url'; inp.dataset.key = k;
+        inp.placeholder = 'https://…';
+        inp.value = apps[k] || '';
+        f.appendChild(inp);
+        if (!apps[k]) f.appendChild(el('p', 'Blank — tile is greyed out.', 'hint'));
+        grid.appendChild(f);
+      });
+
+      $('tokLen').value = res.tokenLength ? (res.tokenLength + ' characters set') : 'not set';
+      if (res.tokenWeak) toast('The panel access code is under 12 characters — worth rotating.', true);
+      if (res.parseError) toast('Panel_Apps is not valid JSON: ' + res.parseError, true);
+      touchSession();
+    }).catch(function(){});
+  }
+
+  $('reloadApps').addEventListener('click', loadApps);
+  $('saveApps').addEventListener('click', function(){
+    var out = {};
+    document.querySelectorAll('#appGrid input').forEach(function(i){
+      var v = i.value.trim();
+      if (v) out[i.dataset.key] = v;
+    });
+    call('panel.save', { apps: out }).then(function(r){
+      if (!r || !r.ok) { fail(r, 'Could not save the URLs.'); return; }
+      toast('App URLs saved. Staff pick them up on their next page load.');
+      loadApps();
+    }).catch(function(){});
+  });
+
+  $('genTok').addEventListener('click', function(){
+    var words = 'amber|basil|cedar|dill|ember|fennel|ginger|hazel|indigo|juniper|kelp|laurel|myrtle|nutmeg|olive|pepper|quince|rosemary|sage|thyme'.split('|');
+    var pick = function(){ return words[Math.floor(Math.random() * words.length)]; };
+    var n = Math.floor(Math.random() * 90) + 10;
+    $('newTok').value = pick() + '-' + pick() + '-' + n;
+    $('newTok').focus();
+  });
+
+  $('rotateTok').addEventListener('click', function(){
+    var t = $('newTok').value.trim();
+    if (t.length < 12) { toast('Access code must be at least 12 characters.', true); return; }
+    if (!confirm('Change the panel access code to:\n\n' + t + '\n\nEvery staff device will need the new code on its next visit. Have it ready to send out.')) return;
+    call('panel.rotateToken', { token: t }).then(function(r){
+      if (!r || !r.ok) { fail(r, 'Could not rotate the code.'); return; }
+      toast(r.message || 'Access code updated.');
+      $('newTok').value = '';
+      loadApps();
+    }).catch(function(){});
+  });
+
+  /* ── Audit ──────────────────────────────────────────── */
+  function loadAudit(){
+    loaded.audit = true;
+    call('audit.list', { limit: 150 }).then(function(res){
+      if (!res || !res.ok) { fail(res, 'Could not load the audit log.'); return; }
+      var body = $('auditBody');
+      body.textContent = '';
+      var entries = res.entries || [];
+      $('auditEmpty').hidden = entries.length > 0;
+      entries.forEach(function(a){
+        var tr = el('tr');
+        tr.appendChild(el('td', a.when));
+        tr.appendChild(el('td', a.actor || '—'));
+        tr.appendChild(el('td', a.action || '—'));
+        tr.appendChild(el('td', a.details || ''));
+        body.appendChild(tr);
+      });
+      touchSession();
+    }).catch(function(){});
+  }
+
+  $('reloadAudit').addEventListener('click', loadAudit);
+  $('runDiag').addEventListener('click', function(){
+    call('diagnose').then(function(res){
+      $('diagOut').hidden = false;
+      $('diagPre').textContent = JSON.stringify(res, null, 2);
+    }).catch(function(){});
+  });
+
+  /* ── Boot ───────────────────────────────────────────── */
+  if (session) {
+    call('ping').then(function(res){
+      if (res && res.ok) start(1800);
+      else { sessionStorage.removeItem(SESSION_KEY); session = ''; }
+    }).catch(function(){ sessionStorage.removeItem(SESSION_KEY); session = ''; });
+  }
+})();
+</script>
+</body>
+</html>
