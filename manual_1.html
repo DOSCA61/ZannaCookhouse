@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Zanna Cookhouse — Systems Manual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#22302b; --plaster:#f0ece3; --glaze-a:#3e6b5a; --glaze-b:#b4552d;
+    --grout:#d8d2c4; --white:#fbfaf6; --muted:#5b665f;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:'Inter',system-ui,sans-serif; background:var(--plaster);
+    color:var(--ink); line-height:1.6; font-size:16px;
+  }
+  .wrap{display:grid;grid-template-columns:280px minmax(0,1fr);gap:0;max-width:1240px;margin:0 auto}
+
+  /* ── sidebar ─────────────────────────────────────────────── */
+  aside{
+    position:sticky;top:0;height:100vh;overflow-y:auto;
+    padding:26px 18px 40px;border-right:1px solid var(--grout);
+    background:rgba(255,255,255,.42);
+  }
+  aside .home{
+    display:inline-block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    font-weight:600;color:var(--glaze-b);text-decoration:none;margin-bottom:14px;
+  }
+  aside .home:hover{text-decoration:underline}
+  #q{
+    width:100%;padding:9px 11px;border:1px solid var(--grout);border-radius:8px;
+    font:inherit;font-size:14px;background:var(--white);color:var(--ink);margin-bottom:6px;
+  }
+  #q:focus{outline:2px solid var(--glaze-a);outline-offset:1px}
+  #qnote{font-size:12px;color:var(--muted);margin-bottom:12px;min-height:16px}
+  nav{display:flex;flex-direction:column}
+  nav a{
+    text-decoration:none;color:var(--ink);font-size:13.5px;
+    padding:5px 8px;border-radius:6px;border-left:2px solid transparent;
+  }
+  nav a:hover{background:rgba(62,107,90,.10)}
+  nav a.lv1{font-weight:600;margin-top:12px;font-size:13px;letter-spacing:.02em}
+  nav a.lv3{padding-left:18px;color:var(--muted)}
+  nav a.on{border-left-color:var(--glaze-b);background:rgba(180,85,45,.10);color:var(--ink)}
+  nav a.hide{display:none}
+
+  /* ── content ─────────────────────────────────────────────── */
+  main{padding:34px 40px 120px;max-width:820px}
+  .toolbar{
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    padding-bottom:18px;margin-bottom:22px;border-bottom:1px solid var(--grout);
+  }
+  .btn{
+    font:inherit;font-size:13px;font-weight:500;cursor:pointer;
+    background:var(--glaze-a);color:var(--white);border:0;
+    padding:8px 14px;border-radius:8px;text-decoration:none;display:inline-block;
+  }
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--grout)}
+  .btn:hover{filter:brightness(1.06)}
+  h1{
+    font-family:'Fraunces',serif;font-weight:700;line-height:1.15;
+    font-size:clamp(24px,3.4vw,32px);margin:44px 0 14px;
+    padding-top:14px;border-top:2px solid var(--grout);
+  }
+  h1:first-of-type{border-top:0;margin-top:0;padding-top:0}
+  h2{font-family:'Fraunces',serif;font-weight:600;font-size:22px;margin:30px 0 10px}
+  h3{font-size:17px;font-weight:600;margin:26px 0 8px;color:#2c4038}
+  p{margin:0 0 12px}
+  ul,ol{margin:0 0 14px 22px}
+  li{margin-bottom:5px}
+  hr{border:0;border-top:1px solid var(--grout);margin:30px 0}
+  a{color:#2f5a4a}
+  code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;
+    background:rgba(34,48,43,.07);padding:1px 5px;border-radius:4px;
+  }
+  pre{background:#22302b;color:#e8e4d8;padding:14px 16px;border-radius:10px;overflow-x:auto;margin:0 0 16px}
+  pre code{background:none;padding:0;color:inherit;font-size:13px;line-height:1.5}
+  blockquote{
+    border-left:3px solid var(--glaze-b);background:rgba(180,85,45,.07);
+    padding:12px 16px;margin:0 0 16px;border-radius:0 8px 8px 0;
+  }
+  blockquote p:last-child{margin-bottom:0}
+  table{border-collapse:collapse;width:100%;margin:0 0 18px;font-size:14.5px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--grout);vertical-align:top}
+  th{font-weight:600;background:rgba(255,255,255,.5)}
+  tbody tr:hover{background:rgba(255,255,255,.45)}
+  strong{font-weight:600}
+
+  .hit{background:#ffe9a8;border-radius:3px}
+  #nomatch{display:none;padding:14px;background:rgba(180,85,45,.08);border-radius:8px;margin-bottom:18px}
+
+  /* ── mobile ──────────────────────────────────────────────── */
+  @media(max-width:880px){
+    .wrap{grid-template-columns:1fr}
+    aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--grout)}
+    main{padding:24px 20px 80px}
+  }
+
+  /* ── print ───────────────────────────────────────────────────
+     Two modes. Plain print gives the whole manual; "Print the staff
+     page" adds .staffonly to <body> so everything except Part 2 is
+     dropped — that is the sheet for the staff room wall.            */
+  @media print{
+    aside,.toolbar{display:none}
+    .wrap{display:block;max-width:none}
+    main{padding:0;max-width:none}
+    body{background:#fff;font-size:12pt}
+    h1{page-break-before:always;border-top:0}
+    h1:first-of-type{page-break-before:auto}
+    h2,h3{page-break-after:avoid}
+    table,pre,blockquote{page-break-inside:avoid}
+    a{color:inherit;text-decoration:none}
+  }
+  body.staffonly main > *{display:none}
+  body.staffonly #staffpage{display:block}
+  body.staffonly #staffpage h1{page-break-before:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <aside>
+    <a class="home" href="./index.html">← Control Panel</a>
+    <input id="q" type="search" placeholder="Search the manual…" aria-label="Search the manual">
+    <p id="qnote"></p>
+    <nav id="nav">
+      <a class="lv1" href="#part-1-the-systems">PART 1 — The systems</a>
+      <a class="lv3" href="#which-one-do-i-want">Which one do I want?</a>
+      <a class="lv3" href="#apps-and-spreadsheets">Apps and spreadsheets</a>
+      <a class="lv1" href="#part-2-for-staff">PART 2 — For staff</a>
+      <a class="lv3" href="#clocking-in">Clocking in</a>
+      <a class="lv3" href="#breaks-and-going-home">Breaks and going home</a>
+      <a class="lv3" href="#what-the-colours-mean">What the colours mean</a>
+      <a class="lv3" href="#if-something-goes-wrong">If something goes wrong</a>
+      <a class="lv1" href="#part-3-how-the-whole-thing-fits-together">PART 3 — How the whole thing fits together</a>
+      <a class="lv3" href="#the-clock-s-tabs">The Clock&#x27;s tabs</a>
+      <a class="lv1" href="#part-4-everyday-jobs">PART 4 — Everyday jobs</a>
+      <a class="lv3" href="#adding-a-new-starter">Adding a new starter</a>
+      <a class="lv3" href="#someone-leaves">Someone leaves</a>
+      <a class="lv3" href="#someone-forgets-their-pin">Someone forgets their PIN</a>
+      <a class="lv3" href="#someone-is-off-sick">Someone is off sick</a>
+      <a class="lv3" href="#someone-forgot-to-clock-out">Someone forgot to clock out</a>
+      <a class="lv1" href="#part-5-break-rules-and-how-pay-is-actually-calculated">PART 5 — Break rules, and how pay is actually calculated</a>
+      <a class="lv3" href="#adding-a-break-type">Adding a break type</a>
+      <a class="lv1" href="#part-6-running-payroll">PART 6 — Running payroll</a>
+      <a class="lv3" href="#reading-the-results">Reading the results</a>
+      <a class="lv3" href="#one-trap-worth-knowing">One trap worth knowing</a>
+      <a class="lv1" href="#part-7-the-screens">PART 7 — The screens</a>
+      <a class="lv1" href="#part-8-management-access">PART 8 — Management access</a>
+      <a class="lv3" href="#the-management-pin">The management PIN</a>
+      <a class="lv3" href="#if-management-gets-locked-out">If management gets locked out</a>
+      <a class="lv1" href="#part-9-the-menu">PART 9 — The menu</a>
+      <a class="lv1" href="#part-10-config-reference">PART 10 — Config reference</a>
+      <a class="lv1" href="#part-11-when-something-goes-wrong">PART 11 — When something goes wrong</a>
+      <a class="lv3" href="#the-two-traps-that-cost-the-most-time">The two traps that cost the most time</a>
+      <a class="lv1" href="#part-12-fairleave-booking-holidays">PART 12 — FairLeave: booking holidays</a>
+      <a class="lv3" href="#booking-a-holiday">Booking a holiday</a>
+      <a class="lv3" href="#when-your-dates-are-full">When your dates are already taken</a>
+      <a class="lv3" href="#what-saturdays-cost">What Saturdays cost you</a>
+      <a class="lv3" href="#your-personal-link">Your personal link</a>
+      <a class="lv3" href="#what-managers-set">What managers set</a>
+      <a class="lv3" href="#how-fairleave-connects">How it connects</a>
+      <a class="lv1" href="#part-13-the-shift-scheduler">PART 13 — The Shift Scheduler</a>
+      <a class="lv3" href="#what-lives-only-here">What lives only here</a>
+      <a class="lv3" href="#each-system-takes-its-own-copy">Each system takes its own copy</a>
+      <a class="lv3" href="#what-else-it-feeds">What else it feeds</a>
+      <a class="lv1" href="#part-14-time-and-motion">PART 14 — Time and Motion</a>
+      <a class="lv3" href="#what-it-measures">What it measures</a>
+      <a class="lv3" href="#its-actual-status">Its actual status</a>
+      <a class="lv1" href="#part-15-built-but-not-systems">PART 15 — Built, but not systems</a>
+      <a class="lv3" href="#factory-floor-planner">Factory Floor Planner</a>
+      <a class="lv1" href="#part-16-what-changed-since-the-v1-2-guide">PART 16 — What changed since the v1.2 guide</a>
+    </nav>
+  </aside>
+
+  <main id="doc">
+    <div class="toolbar">
+      <button class="btn" id="printStaff">Print the staff page</button>
+      <button class="btn ghost" id="printAll">Print everything</button>
+      <a class="btn ghost" href="./index.html">Control Panel</a>
+    </div>
+    <p id="nomatch">Nothing in the manual matches that. Try a shorter word — the search looks at
+      whole sections, so “PIN” finds more than “PIN reset”.</p>
+<h1 id="zanna-cookhouse-systems-manual">Zanna Cookhouse — Systems Manual</h1>
+<p><strong>Covers every system on the floor:</strong> Control Panel · Zanna Clock backend v1.11.0
+and kiosk v1.2 · Payroll app v1.0 · Data Maintenance console 1.4.0 / server 1.3.0 ·
+FairLeave v2.10 · Shift Scheduler · Time and Motion</p>
+<p><strong>Written:</strong> 2026-08-16 · <strong>revised 2026-08-18</strong> — widened from a Clock
+manual to cover the whole estate; Parts 12–15 are new and every part after 1 has
+shifted by one number · replaces the v1.2 A-Z Administrator Guide of 2026-08-04</p>
+<p><strong>Not in here on purpose:</strong> PINs, where PINs are kept, and the addresses of the
+management screens. This page sits in a public repository, so anything written on
+it is public no matter what the browser is told. Managers: that detail is held
+separately — ask.</p>
+<blockquote>
+<p><strong>If you have the old guide, throw it away.</strong> It documents a setting called
+<code>PAY_BREAKS</code> with three modes. That was <strong>retired in v1.3.1</strong> and does nothing
+now. Break pay is controlled by the <code>Exclude Time</code> column instead — Part 5.
+Following the old guide will have you changing a value and wondering why
+nothing happens.</p>
+</blockquote>
+<hr />
+<h1 id="part-1-the-systems">PART 1 — The systems</h1>
+<p>There are nine things on this floor with a screen or a spreadsheet behind them.
+Most people only ever touch two.</p>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>What it does</th>
+<th>Who uses it</th>
+<th>Where you find it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Control Panel</strong></td>
+<td>The front door. Every other app is a tile on it</td>
+<td>Everyone</td>
+<td><strong>Bookmark this one, and nothing else</strong></td>
+</tr>
+<tr>
+<td><strong>Kiosk</strong></td>
+<td>Clocking in, breaks, clocking out</td>
+<td>All staff</td>
+<td>The kitchen tablet</td>
+</tr>
+<tr>
+<td><strong>Canteen and office displays</strong></td>
+<td>Who is on a break, and how long they have left</td>
+<td>Everyone</td>
+<td>The wall screens</td>
+</tr>
+<tr>
+<td><strong>Emergency register</strong></td>
+<td>Who is in the building right now, by department</td>
+<td>Fire marshal</td>
+<td>Control Panel</td>
+</tr>
+<tr>
+<td><strong>FairLeave</strong></td>
+<td>Booking holidays</td>
+<td>All staff</td>
+<td>Your own personal link — Part 12</td>
+</tr>
+<tr>
+<td><strong>Payroll app</strong></td>
+<td>Turns clocking into paid hours</td>
+<td>Whoever runs payroll</td>
+<td>Control Panel, behind a PIN</td>
+</tr>
+<tr>
+<td><strong>Data Maintenance</strong></td>
+<td>Starters, leavers, PIN resets, syncing</td>
+<td>Managers</td>
+<td>Control Panel, behind a PIN</td>
+</tr>
+<tr>
+<td><strong>Shift Scheduler</strong></td>
+<td>The roster. Decides who exists at all</td>
+<td>Managers</td>
+<td>A spreadsheet, not an app — Part 13</td>
+</tr>
+<tr>
+<td><strong>Time and Motion</strong></td>
+<td>How long production tasks take</td>
+<td>Nobody yet</td>
+<td>Not in use — Part 14</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The Control Panel is the way in.</strong> Bookmarking the individual apps is how a
+tablet ends up on a version that was replaced months ago, still working just well
+enough that nobody questions it. Go through the Panel and you always get the
+current one.</p>
+<h3 id="which-one-do-i-want">Which one do I want?</h3>
+<table>
+<thead>
+<tr>
+<th>What you are trying to do</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Start my shift, take a break, go home</td>
+<td>Kiosk — Part 2</td>
+</tr>
+<tr>
+<td>Book a week off</td>
+<td>FairLeave — Part 12</td>
+</tr>
+<tr>
+<td>Someone starts on Monday</td>
+<td>Data Maintenance — Part 4</td>
+</tr>
+<tr>
+<td>Someone has left</td>
+<td>Data Maintenance — Part 4</td>
+</tr>
+<tr>
+<td>Somebody forgot their PIN</td>
+<td>Data Maintenance — Part 4</td>
+</tr>
+<tr>
+<td>Pay people for last week</td>
+<td>Payroll app — Part 6</td>
+</tr>
+<tr>
+<td>Somebody is missing from the kiosk</td>
+<td>Shift Scheduler — Part 13, then sync</td>
+</tr>
+<tr>
+<td>The alarm has gone off</td>
+<td>Emergency register — Part 7</td>
+</tr>
+</tbody>
+</table>
+<h3 id="apps-and-spreadsheets">Apps and spreadsheets</h3>
+<p>The apps are only screens. <strong>All of the actual data lives in three
+spreadsheets</strong>, and each one owns something different:</p>
+<table>
+<thead>
+<tr>
+<th>Spreadsheet</th>
+<th>Owns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Shift Scheduler</strong></td>
+<td><strong>People.</strong> Who exists, what days they work</td>
+</tr>
+<tr>
+<td><strong>Zanna Clock</strong></td>
+<td><strong>Time.</strong> Every clock-in, every break, every paid hour</td>
+</tr>
+<tr>
+<td><strong>FairLeave</strong></td>
+<td><strong>Holidays.</strong> Entitlement, bookings, swaps</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>One rule prevents most of the confusion in this manual: fix a thing where it is
+owned.</strong> Correcting somebody's name in the Clock when the Scheduler owns names
+looks like it worked, and is quietly undone at 05:00 the next morning.</p>
+</blockquote>
+<hr />
+<div id="staffpage"><h1 id="part-2-for-staff">PART 2 — For staff</h1>
+<p><em>Print this page for the staff room. Nothing else here concerns them.</em></p>
+<h3 id="clocking-in">Clocking in</h3>
+<ol>
+<li>Tap your name</li>
+<li>Tap your four digits</li>
+</ol>
+<p>That's it. The screen says <strong>✅ Clocked In</strong>, goes back to the list, and your
+name turns green. No other buttons.</p>
+<p><strong>The very first time</strong>, you'll be asked to <em>choose</em> a PIN instead of enter one.
+Pick four digits you'll remember. It's yours from then on.</p>
+<h3 id="breaks-and-going-home">Breaks and going home</h3>
+<p>Tap your name, enter your PIN, then choose:</p>
+<ul>
+<li><strong>☕ 15 minute break</strong> or <strong>🍽 30 minute break</strong> — you'll be asked whether
+  you're staying on site or leaving the building. Answer honestly: in a fire,
+  the register is what tells the marshal whether to look for you.</li>
+<li><strong>🚻 Comfort break</strong> — not timed, doesn't affect your pay</li>
+<li><strong>✅ End my break</strong> when you come back</li>
+<li><strong>🔴 Clock OUT</strong> at the end of your shift</li>
+</ul>
+<h3 id="what-the-colours-mean">What the colours mean</h3>
+<table>
+<thead>
+<tr>
+<th>On the list</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain white</td>
+<td>Not clocked in</td>
+</tr>
+<tr>
+<td><strong>Green with a ✓</strong></td>
+<td>On shift</td>
+</tr>
+<tr>
+<td><strong>Amber</strong></td>
+<td>On a break</td>
+</tr>
+</tbody>
+</table>
+<h3 id="if-something-goes-wrong">If something goes wrong</h3>
+<ul>
+<li><strong>Your name isn't there</strong> — see a manager. Don't just start work; the hours
+  won't be recorded.</li>
+<li><strong>It won't take your PIN</strong> — check you're on your own name. Three wrong tries
+  is a good moment to ask for a reset rather than a fourth.</li>
+<li><strong>You forgot to clock out yesterday</strong> — tell a manager. It's fixable, but only
+  if someone knows.</li>
+</ul>
+<p><strong>Forgetting to clock out is the most common problem, and it inflates your hours
+until it's corrected.</strong> Nobody gets in trouble for owning up on the day.</p>
+<hr />
+</div>
+<h1 id="part-3-how-the-whole-thing-fits-together">PART 3 — How the whole thing fits together</h1>
+<p>Three spreadsheets. One rule explains most confusion:</p>
+<pre><code>        Shift Scheduler   ← owns PEOPLE
+          ↙          ↘
+    FairLeave        Zanna Clock
+   (holidays)        (clocking, payroll)
+</code></pre>
+<p><strong>Staff are never added in the Clock.</strong> They're added in the Shift Scheduler,
+and two systems copy from it <em>independently</em>, at different times, from different
+screens. Update one and the other is unchanged.</p>
+<h3 id="the-clock-s-tabs">The Clock's tabs</h3>
+<table>
+<thead>
+<tr>
+<th>Tab</th>
+<th>What it is</th>
+<th>Edit it?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Events</strong></td>
+<td>Every tap, appended forever. The raw truth</td>
+<td>Only to correct a genuine mistake</td>
+</tr>
+<tr>
+<td><strong>Sessions</strong></td>
+<td>Derived from Events — one row per shift, breaks nested</td>
+<td><strong>Never.</strong> Rebuilt from scratch</td>
+</tr>
+<tr>
+<td><strong>Payroll</strong></td>
+<td>Derived from Sessions — one row per person per week</td>
+<td><strong>Never.</strong> Rebuilt from scratch</td>
+</tr>
+<tr>
+<td><strong>Staff</strong></td>
+<td>Who can clock in. Synced from the Scheduler</td>
+<td>Rarely — PIN resets are a console button now</td>
+</tr>
+<tr>
+<td><strong>Devices</strong></td>
+<td>Tokens for each tablet and screen</td>
+<td>Add or deactivate devices</td>
+</tr>
+<tr>
+<td><strong>Config</strong></td>
+<td>Break rules and links</td>
+<td>Yes, carefully — Part 5</td>
+</tr>
+<tr>
+<td><strong>Overruns</strong></td>
+<td>Breaks that ran over</td>
+<td>No</td>
+</tr>
+<tr>
+<td><strong>Absences</strong></td>
+<td>Sick days you record manually</td>
+<td>Via the menu</td>
+</tr>
+<tr>
+<td><strong>Audit</strong></td>
+<td>What happened and who did it</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p>Events is the only thing that matters. Sessions and Payroll can be deleted and
+rebuilt at any time without losing anything.</p>
+<hr />
+<h1 id="part-4-everyday-jobs">PART 4 — Everyday jobs</h1>
+<h3 id="adding-a-new-starter">Adding a new starter</h3>
+<p>Do this in the app, not in the spreadsheet.</p>
+<ol>
+<li><strong>Data Maintenance → Employees → “+ Add employee”.</strong> Fill in the name and
+   whatever else you have, leave <code>Active</code> as <em>yes</em>, and <strong>Save</strong>.
+   One button does two things: it writes the person into the <strong>Shift Scheduler</strong>
+   — which is still the source of truth — and then runs FairLeave's import for
+   you, so they get a leave record and a personal link</li>
+<li><strong>Data Maintenance → Employees → <em>Sync to Clock</em></strong> — puts them on the kiosk.
+   This one is <strong>not</strong> automatic on save</li>
+<li><strong>Check the kiosk.</strong> Their name must be visible before their first shift</li>
+</ol>
+<p>Step 2 also runs by itself at 05:00, so someone starting tomorrow is covered
+either way — but if they start today, press the button.</p>
+<p>They set their own PIN at first use. You never issue one.</p>
+<p><strong>What the form does not cover.</strong> The Add employee form handles identity, team,
+leave and clocking. It does <strong>not</strong> set a working pattern. If the new person
+doesn't work a standard week — fewer contracted days, no Saturdays — open the
+Shift Scheduler afterwards and set <code>ContractedDays</code>, <code>NoSaturday</code> and their row
+on <code>EmployeePatterns</code> by hand. Skip that and the rota will schedule them for
+days they don't work, and leave will be charged against days they were never due
+in.</p>
+<p><strong>Editing the Scheduler's Employees tab directly still works</strong> — it's the same
+sheet the form writes to. But then steps 1 and 2 are both on you: <em>Sync from
+Scheduler</em>, then <em>Sync to Clock</em>. The form exists so that can't be forgotten.</p>
+<h3 id="someone-leaves">Someone leaves</h3>
+<p><strong>Data Maintenance → Employees →</strong> open their row <strong>→ Archive.</strong> That marks them
+inactive in the Shift Scheduler, re-syncs FairLeave, cancels their approved
+bookings and fails any pending swaps. Then press <strong><em>Sync to Clock</em></strong> to drop
+them off the kiosk.</p>
+<p>The equivalent by hand is <code>Active = FALSE</code> in the <strong>Shift Scheduler</strong> followed by
+<em>Sync to Clock</em> — same result on the kiosk, but their outstanding leave and swaps
+are left dangling.</p>
+<p>Either way their history is untouched.</p>
+<p><strong>Never delete them from the Clock's Staff tab.</strong> Every historical row refers to
+them by name, and their PIN hash lives on that row.</p>
+<h3 id="someone-forgets-their-pin">Someone forgets their PIN</h3>
+<p><strong>Data Maintenance → Employees →</strong> open their row <strong>→ Reset kiosk PIN.</strong></p>
+<p>Next time they tap their name at the kiosk they're asked to choose a new one.
+There is nothing to issue and nothing to write down — you never see anyone's
+PIN, including your own staff's. Their clocking history is untouched.</p>
+<p><strong>By hand, if the console can't reach the Clock:</strong> open the <strong>Zanna Clock</strong>
+spreadsheet, <strong>Staff</strong> tab, find their row and clear <strong>both</strong> <code>PinHash</code> and
+<code>Salt</code>.</p>
+<p>Clear both or neither. A hash with no salt can never match, and they'd be locked
+out permanently with no way to enrol again.</p>
+<h3 id="someone-is-off-sick">Someone is off sick</h3>
+<p>Menu → <strong>🤒 Record sick absence</strong>. They then show as absent on the canteen and
+office displays and in the emergency register.</p>
+<h3 id="someone-forgot-to-clock-out">Someone forgot to clock out</h3>
+<p>Open <strong>Events</strong>, find their <code>CLOCK_IN</code>, and add a <code>CLOCK_OUT</code> row with the right
+time, the same <code>SessionID</code>, and the same name. Then rebuild.</p>
+<p>Editing the log is a real decision, not a formality. It changes what someone is
+paid, and the Audit tab won't show your reasoning — put it in the Device column
+or tell payroll.</p>
+<hr />
+<h1 id="part-5-break-rules-and-how-pay-is-actually-calculated">PART 5 — Break rules, and how pay is actually calculated</h1>
+<p><strong>One setting decides everything: the <code>Exclude Time</code> column on the Config tab.</strong></p>
+<p>Any Config row whose key starts with <code>BREAK_</code> is a break type. The value is the
+allowed minutes. Two columns then decide how it behaves:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Question it answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>D — Comfort Break</strong></td>
+<td><code>Yes</code> = untimed, always on site, never shows a countdown</td>
+</tr>
+<tr>
+<td><strong>E — Exclude Time</strong></td>
+<td><code>YES</code> = these minutes are <strong>deducted</strong> from pay. Anything else = paid</td>
+</tr>
+</tbody>
+</table>
+<p>Current settings:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Mins</th>
+<th>Comfort</th>
+<th>Exclude Time</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BREAK_15</code></td>
+<td>15</td>
+<td></td>
+<td><strong>YES</strong></td>
+<td>deducted</td>
+</tr>
+<tr>
+<td><code>BREAK_30</code></td>
+<td>30</td>
+<td></td>
+<td><strong>YES</strong></td>
+<td>deducted</td>
+</tr>
+<tr>
+<td><code>BREAK_COMFORT</code></td>
+<td>0</td>
+<td>Yes</td>
+<td>NO</td>
+<td>paid, untimed</td>
+</tr>
+</tbody>
+</table>
+<p>So someone on an 8-hour shift taking both breaks is paid 7 hours 15 minutes.</p>
+<p><strong>Check it, never assume it:</strong> Menu → <strong>🩺 Show break pay rules</strong>.</p>
+<p>Two things worth knowing:</p>
+<ul>
+<li><strong>Column D is not column E.</strong> They're adjacent and they answer different
+  questions. Reading one when you meant the other is a bug that once made
+  payroll deduct nothing at all for weeks.</li>
+<li><strong>A break type missing from Config is treated as PAID and flagged</strong>, never
+  silently deducted. The Payroll app shows those rows in amber. The Clock will
+  not quietly reduce someone's pay based on a rule nobody wrote down.</li>
+</ul>
+<h3 id="adding-a-break-type">Adding a break type</h3>
+<p>Add a Config row: key <code>BREAK_SOMETHING</code>, value = minutes, Notes = the button
+label staff see, and <code>YES</code> in Exclude Time if it's unpaid. It appears on the
+kiosk immediately — the buttons are built from Config, not hard-coded.</p>
+<hr />
+<h1 id="part-6-running-payroll">PART 6 — Running payroll</h1>
+<p><strong>Control Panel → Payroll.</strong> You should not need to open the spreadsheet.</p>
+<ol>
+<li>Sign in with the <strong>management PIN</strong> (the Clock's — Part 8)</li>
+<li><strong>Process payroll</strong> — rebuilds Sessions and Payroll from the raw log. Safe to
+   run as often as you like; it never changes what anyone clocked</li>
+<li><strong>Read the summary.</strong> Open shifts, unclosed breaks and unconfigured break
+   types are reported here, not buried</li>
+<li>Pick the week, check the totals, <strong>Export to Excel</strong></li>
+</ol>
+<h3 id="reading-the-results">Reading the results</h3>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gross minutes</td>
+<td>Total time between clock-in and clock-out</td>
+</tr>
+<tr>
+<td>Breaks deducted</td>
+<td>Break types marked <code>Exclude Time = YES</code></td>
+</tr>
+<tr>
+<td>Breaks paid</td>
+<td>Everything else</td>
+</tr>
+<tr>
+<td>Net paid minutes</td>
+<td>Gross − deducted</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Amber rows need checking before you pay them.</strong> They contain a break type
+that isn't in Config, so those minutes were treated as paid.</p>
+<p><strong>"Still open" means someone never clocked out.</strong> Their shift contributes
+nothing until it's corrected — see Part 4.</p>
+<h3 id="one-trap-worth-knowing">One trap worth knowing</h3>
+<p>There is an older export at <code>?action=payroll</code> in a URL. It uses a <strong>different
+calculation</strong>: first clock-in to last clock-out of the day, which pays people
+for the gap between a split shift, and it predates the per-break-type rules.</p>
+<p><strong>Use the Payroll app.</strong> If someone hands you a CSV from that link, the numbers
+may not match and the app is the one that's right.</p>
+<hr />
+<h1 id="part-7-the-screens">PART 7 — The screens</h1>
+<table>
+<thead>
+<tr>
+<th>Screen</th>
+<th>Shows</th>
+<th>Device type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Kiosk</strong></td>
+<td>Staff list, clocking</td>
+<td><code>KIOSK</code></td>
+</tr>
+<tr>
+<td><strong>Canteen display</strong></td>
+<td>Who's on a break, with countdowns. Comfort breaks masked</td>
+<td><code>DISPLAY_CANTEEN</code></td>
+</tr>
+<tr>
+<td><strong>Office display</strong></td>
+<td>Same, in full detail</td>
+<td><code>DISPLAY_OFFICE</code></td>
+</tr>
+<tr>
+<td><strong>Emergency register</strong></td>
+<td>Who is in the building, by department, plus who is off site</td>
+<td><code>EMERGENCY</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each device has a row on the <strong>Devices</strong> tab with a token, and that token is in
+its URL. Only a <code>KIOSK</code> device can clock anyone in — the displays are read-only
+even if someone finds the URL.</p>
+<p><strong>To retire a tablet:</strong> set its Devices row to <code>Active = FALSE</code>. The URL stops
+working immediately.</p>
+<p><strong>The emergency register is a safety document.</strong> It's only as good as the
+on-site / off-site answers staff give when starting a break — which is why the
+kiosk asks.</p>
+<hr />
+<h1 id="part-8-management-access">PART 8 — Management access</h1>
+<h3 id="the-management-pin">The management PIN</h3>
+<p>The Payroll app, the Data Maintenance console and FairLeave's management screens
+are each behind a PIN. Staff never need one — everything in Part 2 works without.</p>
+<p><strong>The PINs are not written down here.</strong> They are not kept in any spreadsheet
+either, which is deliberate: a spreadsheet cell is readable by everyone who can
+edit the rota. If you need one, ask — do not go looking for it in the sheets, and
+do not paste one into a message or a document.</p>
+<blockquote>
+<p>Each system has its own PIN, and some of them are paired across systems. Changing
+one on its own is the single most common way to break syncing between two systems,
+and the error it produces mentions permissions, which sends people looking in
+entirely the wrong place. <strong>Never change a PIN without checking the internal
+rotation notes first.</strong></p>
+</blockquote>
+<h3 id="if-management-gets-locked-out">If management gets locked out</h3>
+<p>Ten wrong attempts locks management out for 15 minutes. The counter is
+<strong>global, not per-person</strong> — so one person guessing locks it for everybody,
+including someone who knows the right PIN. Wait it out, or ask for it to be
+cleared.</p>
+<p>Staff clocking in and out is completely unaffected. The kiosk keeps working
+through a management lockout.</p>
+<hr />
+<h1 id="part-9-the-menu">PART 9 — The menu</h1>
+<p>Zanna Clock spreadsheet → <strong>⏰ Zanna Clock</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔄 Sync staff from Scheduler</td>
+<td>Pulls the roster in. Also runs at 05:00 daily</td>
+</tr>
+<tr>
+<td>🤒 Record sick absence</td>
+<td>Marks someone absent for a date range</td>
+</tr>
+<tr>
+<td>🧱 Rebuild analytics (Sessions)</td>
+<td>Events → Sessions. Also runs hourly</td>
+</tr>
+<tr>
+<td>💰 Rebuild payroll</td>
+<td>Sessions → Payroll</td>
+</tr>
+<tr>
+<td>🩺 Diagnose Scheduler link</td>
+<td>Can it see the Scheduler, and which tab</td>
+</tr>
+<tr>
+<td>🩺 Diagnose FairLeave link</td>
+<td>Can it see holidays, and do ids resolve</td>
+</tr>
+<tr>
+<td>🩺 Show break pay rules</td>
+<td><strong>Which breaks are deducted.</strong> Check before payroll</td>
+</tr>
+<tr>
+<td>🩺 Staff IDs</td>
+<td>EmployeeID mapping, duplicates, missing PINs</td>
+</tr>
+<tr>
+<td>🩺 Which code is live</td>
+<td>Reads each function's own source. Use when a fix "didn't work"</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="part-10-config-reference">PART 10 — Config reference</h1>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AMBER_PCT</code></td>
+<td>Break timer turns amber at this % of the allowance (80)</td>
+</tr>
+<tr>
+<td><code>BREAK_15</code> / <code>BREAK_30</code> / <code>BREAK_COMFORT</code></td>
+<td>Break types — Part 5</td>
+</tr>
+<tr>
+<td><code>SCHEDULER_SHEET_ID</code></td>
+<td>The Shift Scheduler spreadsheet</td>
+</tr>
+<tr>
+<td><code>SCHEDULER_STAFF_TAB</code></td>
+<td>Optional. Blank = find it automatically</td>
+</tr>
+<tr>
+<td><code>LEAVE_SHEET_ID</code></td>
+<td>The FairLeave spreadsheet, for holiday lookup</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="part-11-when-something-goes-wrong">PART 11 — When something goes wrong</h1>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Cause</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Someone isn't on the kiosk</td>
+<td>Not Active in the <strong>Scheduler</strong></td>
+<td>Fix there, then <em>Sync to Clock</em>. Fixing the Clock alone is undone at 05:00</td>
+</tr>
+<tr>
+<td>Two people share a first name</td>
+<td>The kiosk can't represent it; the second can't clock in</td>
+<td>Make the names distinct in the Scheduler, then sync</td>
+</tr>
+<tr>
+<td>Payroll deducts nothing</td>
+<td><code>Exclude Time</code> not set</td>
+<td>🩺 Show break pay rules</td>
+</tr>
+<tr>
+<td>Hours are an hour out</td>
+<td>Script timezone</td>
+<td>Apps Script → Project Settings → <strong>Europe/Dublin</strong></td>
+</tr>
+<tr>
+<td>Nobody shows as on holiday</td>
+<td>The FairLeave link</td>
+<td>🩺 Diagnose FairLeave link</td>
+</tr>
+<tr>
+<td>Kiosk shows an old screen</td>
+<td>Tablet cached the page</td>
+<td>Hard-refresh; re-add to home screen</td>
+</tr>
+<tr>
+<td>"Unknown action or missing permission"</td>
+<td>Code saved but not <strong>deployed</strong></td>
+<td>Deploy → Manage deployments → ✏️ → New version</td>
+</tr>
+<tr>
+<td>A code fix appears to do nothing</td>
+<td>Another <code>.gs</code> file redefines the same function — the last one wins, silently</td>
+<td>Check the Files list. Run 🩺 Which code is live</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-two-traps-that-cost-the-most-time">The two traps that cost the most time</h3>
+<ol>
+<li><strong>Saving is not deploying.</strong> The web app serves the last <em>deployed version</em>.
+   The symptom is a screen calling something the server has never heard of.</li>
+<li><strong>Every <code>.gs</code> file in a project shares one namespace, and a duplicated
+   function name is resolved by taking the last one — with no warning.</strong> A
+   correct fix once did nothing for three rounds because a second file redefined
+   it. <code>🩺 Which code is live</code> exists precisely for this.</li>
+</ol>
+<hr />
+<h1 id="part-12-fairleave-booking-holidays">PART 12 — FairLeave: booking holidays</h1>
+<p><strong>There is no approval step.</strong> Nobody signs your holiday off. If there is room
+on the days you want, they are yours the moment you ask. First come, first served.</p>
+<h3 id="booking-a-holiday">Booking a holiday</h3>
+<p>Open your personal link, pick your dates, submit. It is approved instantly unless
+one of three things is true:</p>
+<ul>
+<li>the dates fall in a <strong>blackout period</strong> the business has closed off</li>
+<li>you do not have enough <strong>days left</strong></li>
+<li>your <strong>team is already at its limit</strong> on one of those days</li>
+</ul>
+<h3 id="when-your-dates-are-full">When your dates are already taken</h3>
+<p>You are not simply refused. You are shown <strong>who holds the days you wanted</strong>, and
+you can ask them to swap.</p>
+<p>A swap is a true exchange, not a favour. The other person accepts by choosing
+their <em>own</em> replacement dates, and both moves are made together — or neither is.
+Nobody ends up having given up their holiday and got nothing back.</p>
+<p>If they would rather just release the days without rebooking, that works too.</p>
+<h3 id="what-saturdays-cost">What Saturdays cost you</h3>
+<p>Saturday is a working day here, so it counts towards <em>cover</em> — it affects how
+many people can be off at once.</p>
+<p><strong>But it does not come off your entitlement.</strong> A Monday-to-Friday week off costs
+you five days, not six, so 20 days is exactly four working weeks. Sundays are the
+same. This was corrected in August 2026 and applies to leave already booked, not
+just new bookings.</p>
+<h3 id="your-personal-link">Your personal link</h3>
+<p><strong>Your link signs you in as you.</strong> Anyone who has it can change your bookings.
+Treat it like your bank card, not like a bookmark — do not forward it, do not put
+it in a group chat, do not leave it open on a shared tablet.</p>
+<p>Add it to your phone's home screen and it behaves like an app. There is also a QR
+code you can scan instead of typing it.</p>
+<p>Lost it? Ask a manager to reissue. You get a new link and <strong>the old one stops
+working</strong>, which is the point.</p>
+<h3 id="what-managers-set">What managers set</h3>
+<p>Management does not approve individual requests — it sets the limits the rules run
+on: how many people may be off at once in each team, which periods are blacked
+out, and how many days each person gets.</p>
+<p><strong>Check the teams before setting a limit.</strong> A limit of two means two people off
+across whatever the team covers. If everybody is in one team, that is two people
+off in the entire business.</p>
+<h3 id="how-fairleave-connects">How it connects to everything else</h3>
+<p>People come <em>from</em> the Shift Scheduler. Approved leave is pushed <em>back</em> to the
+Scheduler so the rota knows. The Clock reads FairLeave, so anyone on holiday shows
+as on holiday on the displays rather than as simply absent.</p>
+<p>If a booking fails to reach the Scheduler, <strong>the holiday is still booked</strong> — the
+sync is allowed to fail without taking somebody's leave down with it.</p>
+<hr />
+<h1 id="part-13-the-shift-scheduler">PART 13 — The Shift Scheduler</h1>
+<p>Not an app — a spreadsheet. It is also the most important thing in the estate,
+because <strong>it owns people</strong>.</p>
+<p>If somebody is not marked Active here, they do not exist anywhere else. Not on the
+kiosk, not in FairLeave, not in payroll. Every other system takes its copy from
+this one.</p>
+<h3 id="what-lives-only-here">What lives only here</h3>
+<p>The Add employee form in Data Maintenance covers identity, team, leave and
+clocking. It does <strong>not</strong> set a working pattern. Contracted days, whether someone
+works Saturdays, and individual weekly patterns exist only in the Scheduler.</p>
+<p>Skip them and two things go wrong quietly: the rota schedules people for days they
+do not work, and leave is charged against days they were never due in.</p>
+<h3 id="each-system-takes-its-own-copy">Each system takes its own copy</h3>
+<p>The Clock and FairLeave both copy from the Scheduler <strong>independently, at different
+times, from different screens</strong>. Syncing one does not sync the other. This is the
+single most common source of "but I already fixed that".</p>
+<p>Fix the person here, then push the change out — Part 4 has the buttons.</p>
+<blockquote>
+<p><strong>Never fix a person on the Clock's own Staff tab.</strong> It looks like it worked. The
+05:00 sync overwrites it from the Scheduler and the problem is back before anyone
+is in.</p>
+</blockquote>
+<h3 id="what-else-it-feeds">What else it feeds</h3>
+<p>Once somebody is Active and clocking, the Scheduler's data drives the reporting:
+production timing, absence patterns, how many staff are rostered against what the
+week actually needs, and the payroll export.</p>
+<hr />
+<h1 id="part-14-time-and-motion">PART 14 — Time and Motion</h1>
+<p><strong>It is part of the Shift Scheduler, not a separate system.</strong> There is no separate
+login and nothing to install.</p>
+<h3 id="what-it-measures">What it measures</h3>
+<p>The Clock measures <em>attendance</em> — who was here and for how long. Time and Motion
+measures <em>work</em> — how long production tasks actually take. Two different
+questions, and the second one is the one that tells you whether a shift was
+well spent.</p>
+<h3 id="its-actual-status">Its actual status</h3>
+<blockquote>
+<p><strong>Built in May 2026. Never implemented.</strong> It was offered to Zanna that June
+alongside three other systems, a date was going to be set, and it never was. It
+has been sitting finished and unused since.</p>
+</blockquote>
+<p>There is a second reason it cannot be used as it stands: <strong>access is restricted to
+Richmond IT accounts</strong>, so a Zanna login will not open it. That is a setting
+rather than a fault, but it has to be decided before any rollout — otherwise the
+first person who tries will report a broken link, when what they actually hit was
+a permission boundary.</p>
+<p><strong>Nothing depends on it.</strong> No other system reads from it, and nothing breaks while
+it sits idle. It needs a decision, not a repair.</p>
+<hr />
+<h1 id="part-15-built-but-not-systems">PART 15 — Built, but not systems</h1>
+<p>Things that exist, look finished, and are <strong>not</strong> part of the running estate.
+Listed so nobody spends an afternoon hunting for a login that was never made.</p>
+<h3 id="factory-floor-planner">Factory Floor Planner</h3>
+<p>A drag-and-drop allocation board — sections down the side, shifts across the top,
+staff dragged into the cells from a pool. It also tracks certification status,
+which nothing else here does.</p>
+<p><strong>It is a prototype.</strong> There is no backend, it is connected to none of the systems
+above, and <strong>it saves nothing</strong> — refresh the page and the board is gone. The
+names in it are invented.</p>
+<p>Not deployed, no address, no login. Worth keeping for the certification idea; not
+worth looking for.</p>
+<hr />
+<h1 id="part-16-what-changed-since-the-v1-2-guide">PART 16 — What changed since the v1.2 guide</h1>
+<table>
+<thead>
+<tr>
+<th>Then</th>
+<th>Now</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PAY_BREAKS</code> with three modes</td>
+<td><strong>Gone.</strong> <code>Exclude Time</code> per break type</td>
+</tr>
+<tr>
+<td>One shift row per person per day</td>
+<td>One per <strong>shift</strong> — split shifts count separately</td>
+</tr>
+<tr>
+<td>Staff matched by name</td>
+<td>Matched by <strong>EmployeeID</strong>, so a rename keeps the PIN</td>
+</tr>
+<tr>
+<td>Management PIN in Config</td>
+<td><strong>Out of the spreadsheet entirely</strong>, plus a lockout after repeated wrong attempts</td>
+</tr>
+<tr>
+<td>Clock in = tap, PIN, then Clock In</td>
+<td><strong>One tap</strong> — PIN verified and clocked in together</td>
+</tr>
+<tr>
+<td>Payroll by copy-paste from the tab</td>
+<td>The <strong>Payroll app</strong>, with an Excel export</td>
+</tr>
+<tr>
+<td>Breaks not in Config ignored</td>
+<td>Treated as paid and <strong>flagged</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Two fixes worth knowing about because they silently affected pay:</p>
+<ul>
+<li><strong>Breaks taken on the kiosk never reached payroll.</strong> The end-of-break row
+  didn't record which break it ended, so nothing paired. Fixed in v1.3.1.</li>
+<li><strong>A second shift in one day overwrote the first.</strong> Both used the same
+  SessionID, so the hours vanished. Fixed in v1.5, and old collisions are
+  recovered on rebuild.</li>
+</ul>
+<hr />
+<p><strong>Questions:</strong> admin@richmondit.ie</p>
+  </main>
+
+</div>
+
+<script>
+(function(){
+  var doc  = document.getElementById('doc');
+  var navA = Array.prototype.slice.call(document.querySelectorAll('#nav a'));
+  var q    = document.getElementById('q');
+  var note = document.getElementById('qnote');
+  var none = document.getElementById('nomatch');
+
+  /* Printing.
+     The staff page is Part 2 only. It is the one page anyone prints twice, and
+     printing the whole 11-part manual to get it is how a wall ends up with
+     nothing on it. The class is removed after printing so the screen never
+     stays in a half-hidden state if the dialog is cancelled. */
+  function printWith(cls){
+    if (cls) document.body.classList.add(cls);
+    window.print();
+    setTimeout(function(){ document.body.classList.remove('staffonly'); }, 300);
+  }
+  document.getElementById('printStaff').addEventListener('click', function(){ printWith('staffonly'); });
+  document.getElementById('printAll').addEventListener('click', function(){ printWith(null); });
+
+  /* Search.
+     Sections, not lines. Someone looking for "PIN" wants the paragraph that
+     explains it, not a list of every line the word appears on — so a match
+     shows the whole block it lives in, with the term highlighted. */
+  var blocks = [];
+  Array.prototype.forEach.call(doc.children, function(el){
+    if (el.id === 'nomatch' || el.classList.contains('toolbar')) return;
+    blocks.push(el);
+  });
+
+  function clearMarks(el){
+    el.querySelectorAll && Array.prototype.forEach.call(el.querySelectorAll('.hit'), function(m){
+      var t = document.createTextNode(m.textContent);
+      m.parentNode.replaceChild(t, m);
+    });
+    el.normalize && el.normalize();
+  }
+
+  function mark(el, term){
+    var re = new RegExp('(' + term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'ig');
+    var walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    var nodes = [], n;
+    while ((n = walk.nextNode())) nodes.push(n);
+    nodes.forEach(function(node){
+      if (!re.test(node.nodeValue)) return;
+      re.lastIndex = 0;
+      var span = document.createElement('span');
+      span.innerHTML = node.nodeValue.replace(/[&<>]/g, function(c){
+        return c === '&' ? '&amp;' : c === '<' ? '&lt;' : '&gt;';
+      }).replace(re, '<span class="hit">$1</span>');
+      node.parentNode.replaceChild(span, node);
+    });
+  }
+
+  var t = null;
+  q.addEventListener('input', function(){
+    clearTimeout(t);
+    t = setTimeout(run, 120);
+  });
+
+  function run(){
+    var term = q.value.trim();
+    blocks.forEach(clearMarks);
+
+    if (term.length < 2){
+      blocks.forEach(function(b){ b.style.display = ''; });
+      navA.forEach(function(a){ a.classList.remove('hide'); });
+      none.style.display = 'none';   /* '' would fall back to the CSS rule, which hides it */
+      note.textContent = '';
+      return;
+    }
+
+    var needle = term.toLowerCase(), shown = 0, keepIds = {};
+    var currentH1 = null;
+
+    blocks.forEach(function(b){
+      if (b.tagName === 'H1') currentH1 = b;
+      var hit = b.textContent.toLowerCase().indexOf(needle) > -1;
+      b.style.display = hit ? '' : 'none';
+      if (hit){
+        shown++;
+        mark(b, term);
+        if (b.id) keepIds[b.id] = true;
+        /* Keep the part heading visible, or a match reads as though it
+           belongs to whatever section happens to be above it. */
+        if (currentH1){ currentH1.style.display = ''; keepIds[currentH1.id] = true; }
+      }
+    });
+
+    navA.forEach(function(a){
+      var id = a.getAttribute('href').slice(1);
+      a.classList.toggle('hide', !keepIds[id]);
+    });
+
+    /* Was `: ''`, which resolves back to the stylesheet's `#nomatch{display:none}`
+       — so the "nothing matches" message never actually appeared. */
+    none.style.display = shown ? 'none' : 'block';
+    note.textContent = shown ? (shown + ' section' + (shown === 1 ? '' : 's')) : 'no matches';
+  }
+
+  /* Highlight where you are. */
+  var heads = Array.prototype.slice.call(doc.querySelectorAll('h1[id],h3[id]'));
+  function spy(){
+    var best = null;
+    heads.forEach(function(h){
+      if (h.getBoundingClientRect().top < 120) best = h;
+    });
+    navA.forEach(function(a){
+      a.classList.toggle('on', !!best && a.getAttribute('href') === '#' + best.id);
+    });
+  }
+  window.addEventListener('scroll', spy, { passive:true });
+  spy();
+})();
+</script>
+</body>
+</html>
