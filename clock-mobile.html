@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1115">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Zanna Clock v1.0.0 — phone clock-in</title>
+<!-- ==========================================================================
+     Zanna Clock — phone clock-in
+     BUILD: v1.0.0  (2026-08-18)
+
+     WHY THIS PAGE IS HERE AND NOT IN APPS SCRIPT.
+     Apps Script serves HtmlService pages inside a sandboxed iframe on a
+     googleusercontent origin. Two things follow, both verified on a real
+     iPhone on 2026-08-18:
+       - localStorage there is THIRD-PARTY storage. Safari discards it, so the
+         phone never remembers who you are and every morning starts from
+         scratch.
+       - the sandbox iframe's allow attribute grants geolocation, clipboard and
+         a dozen others but NOT camera, so getUserMedia is refused and a
+         scanner cannot be built.
+     What was left was asking staff to type eight characters at 06:45, which is
+     a clock-in method people route around.
+
+     On GitHub Pages the origin is first-party, so storage is kept, and there is
+     no sandbox, so the camera works.
+
+     THE SECURITY MODEL IS UNCHANGED. Two halves are still required and are
+     still checked by the same server code: the personal token (who you are,
+     carried in this page's URL fragment) and the rotating site code (that you
+     are in front of the screen, read from the panel). This page changes how the
+     code reaches the phone — camera instead of fingers — and nothing else.
+
+     Backend: Zanna Clock Apps Script, Clock_QR.gs v1.2.0, doPost qp:'mclk'.
+     ========================================================================== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:#0f1115;color:#eef1f6;-webkit-text-size-adjust:100%}
+  h1{font-size:26px;line-height:1.25;margin:0 0 12px;font-weight:650}
+  p{margin:0 0 12px}
+  .muted{color:#9aa3b2;font-size:14px}
+  .m{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px}
+  .card{width:100%;max-width:420px;background:#161a22;border:1px solid #232936;border-radius:18px;padding:26px;text-align:center}
+  .btn{display:block;width:100%;margin:18px 0 6px;padding:20px;border:0;border-radius:14px;
+       background:#2f6df6;color:#fff;font-size:19px;font-weight:600;cursor:pointer}
+  .btn:disabled{opacity:.55}
+  .btn.big{padding:30px;font-size:23px}
+  .btn.ghost{background:#232936}
+  .link{background:none;border:0;color:#9aa3b2;font-size:14px;text-decoration:underline;cursor:pointer;padding:8px}
+  input.code{width:100%;padding:18px;font-size:30px;letter-spacing:.16em;text-align:center;
+       border-radius:14px;border:1px solid #2b3242;background:#0f1115;color:#eef1f6;
+       font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .tick{font-size:52px;color:#3ad07f;line-height:1}
+  p.big{font-size:40px;font-weight:650;margin:6px 0}
+  .brand{margin-top:22px;color:#5c6577;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+  .stamp{margin-top:6px;color:#3c4454;font-size:10.5px;letter-spacing:.06em}
+  .spin{width:26px;height:26px;margin:10px auto;border:3px solid #2b3242;border-top-color:#2f6df6;
+        border-radius:50%;animation:sp .8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  /* camera */
+  .cam{position:relative;width:100%;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:1/1;margin:8px 0}
+  .cam video{width:100%;height:100%;object-fit:cover;display:block}
+  .reticle{position:absolute;inset:14%;border:3px solid rgba(255,255,255,.85);border-radius:12px;
+           box-shadow:0 0 0 100vmax rgba(0,0,0,.35)}
+</style>
+</head>
+<body>
+<div class="m">
+  <div id="view" class="card"><div class="spin"></div><p class="muted">Checking…</p></div>
+  <div class="brand">Zanna Cookhouse</div>
+  <div class="stamp" id="stamp"></div>
+</div>
+
+<script>
+/* ---------- build identity ----------
+   Bump BOTH of these and the comment block in <head> when you cut a build.
+   The filename is an address, not a version — read the footer to know what is
+   live. Same rule as FairLeave. */
+var APP_VERSION    = '1.0.0';
+var APP_BUILD_DATE = '2026-08-18';
+
+/* The Zanna Clock web app. VERIFY THIS before rollout: open it in a browser and
+   it should answer {"ok":true,"app":"ZannaClock",...}. It must end /exec — the
+   editor's /dev URL works only for the project owner. */
+var DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbyJDs7Dh8UDakGcczmSdpcWBCDacKsXhIh8ZALlijaZE413VHO--ZCS7A4FaJDnYtcm/exec';
+
+var V = document.getElementById('view');
+var T = '', S = '', ME = null, API = DEFAULT_API_URL;
+var stream = null, raf = null;
+
+/* First-party storage — the entire reason this page is not on Apps Script. */
+function store(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+function recall(k){ try{ return localStorage.getItem(k) || ''; }catch(e){ return ''; } }
+
+function esc(x){ var d = document.createElement('div'); d.textContent = x == null ? '' : x; return d.innerHTML; }
+
+/* ---------- the URL fragment ----------
+   A real fragment on a real origin: never sent to any server, no
+   google.script.url gymnastics needed. Deliberately NOT stripped after reading
+   — the link IS the credential, and a phone whose storage was cleared must
+   still work when the home-screen icon is reopened. */
+function readHash(){
+  var h = String(location.hash || '');
+  var mt = h.match(/[#&]t=([A-Za-z0-9_-]{16,64})/);
+  if (mt) { T = mt[1]; store('zannaTok', T); } else { T = recall('zannaTok'); }
+  var ms = h.match(/[#&]s=([0-9A-Za-z]{8})/);
+  if (ms) S = normalise(ms[1]);
+  var ma = h.match(/[#&]api=([^&]+)/);
+  if (ma) { API = decodeURIComponent(ma[1]); store('zannaApi', API); }
+  else { API = recall('zannaApi') || DEFAULT_API_URL; }
+}
+
+/* Crockford base32 has no I, L, O or U, so these can only be misreadings. */
+function normalise(raw){
+  return String(raw || '').toUpperCase().replace(/[^0-9A-Z]/g, '')
+    .replace(/[IL]/g, '1').replace(/O/g, '0');
+}
+
+/* ---------- transport ----------
+   No Content-Type header on purpose. A string body defaults to text/plain,
+   which keeps this a CORS "simple request" — no preflight, which Apps Script
+   does not answer. Same approach FairLeave has used in production. */
+function apiCall(action, payload, done, failed){
+  var body = { qp: 'mclk', action: action, t: T };
+  for (var k in payload) if (Object.prototype.hasOwnProperty.call(payload, k)) body[k] = payload[k];
+  fetch(API, { method: 'POST', body: JSON.stringify(body) })
+    .then(function(r){ if (!r.ok) throw new Error('Server error (' + r.status + ')'); return r.json(); })
+    .then(done)
+    .catch(function(e){ failed(String(e && e.message || e)); });
+}
+
+/* ---------- screens ---------- */
+function needLink(){
+  V.innerHTML = '<h1>Almost there</h1>' +
+    '<p>This phone does not have your personal clock-in link yet.</p>' +
+    '<p class="muted">Open the link your manager gave you, once, on this phone. ' +
+    'Then add it to your home screen and you will not need it again.</p>';
+}
+
+function fail(msg){
+  V.innerHTML = '<h1>Sorry</h1><p>' + esc(msg) + '</p>';
+  if (T) V.innerHTML += '<button class="btn ghost" onclick="boot()">Try again</button>';
+}
+
+function boot(){
+  stopCamera();
+  if (!T) { needLink(); return; }
+  V.innerHTML = '<div class="spin"></div><p class="muted">Checking…</p>';
+  apiCall('hello', {}, function(r){
+    if (!r || !r.ok) { fail(r && r.error ? r.error : 'The clock did not answer.'); return; }
+    ME = r; render();
+  }, fail);
+}
+
+function render(){
+  stopCamera();
+  var greet = (new Date()).getHours() < 12 ? 'Good morning' : 'Hello';
+  var h = '<h1>' + greet + ', ' + esc(ME.first) + '</h1>';
+  var goingIn = (ME.state !== 'IN');
+
+  if (!goingIn && !ME.allowOut){
+    V.innerHTML = h + '<p>You clocked in at <b>' + esc(ME.since) + '</b>.</p>' +
+      '<p class="muted">Clock out on the kitchen tablet.</p>';
+    return;
+  }
+  if (!goingIn) h += '<p>Clocked in since <b>' + esc(ME.since) + '</b>.</p>';
+
+  var needScan = goingIn || ME.outNeedsScan;
+  var label = goingIn ? 'Clock in' : 'Clock out';
+
+  /* Already holding a good code — arrived by scanning the panel with the phone's
+     own camera app. One tap and done. */
+  if (!needScan || S.length === 8){
+    V.innerHTML = h + '<button class="btn big" id="go">' + label + '</button>' +
+      (needScan ? '<p class="muted">Code accepted from the screen.</p>' : '');
+    document.getElementById('go').onclick = function(){ submit(goingIn ? 'in' : 'out'); };
+    return;
+  }
+
+  V.innerHTML = h + '<p class="muted">Point your phone at the screen by the door.</p>' +
+    '<button class="btn big" id="scan">📷 Scan the screen</button>' +
+    '<button class="link" id="type">No camera? Type the code instead</button>';
+  document.getElementById('scan').onclick = function(){ startCamera(goingIn ? 'in' : 'out'); };
+  document.getElementById('type').onclick = function(){ typeCode(goingIn ? 'in' : 'out', ''); };
+}
+
+/* ---------- camera ----------
+   The fallback is the whole point: a refused permission, a broken lens or a
+   blocked CDN drops to typing rather than to a locked door. */
+function startCamera(action){
+  if (typeof jsQR === 'undefined'){
+    typeCode(action, 'The scanner did not load. Type the code instead.');
+    return;
+  }
+  V.innerHTML = '<h1>Scan the screen</h1>' +
+    '<div class="cam"><video id="v" playsinline muted></video><div class="reticle"></div></div>' +
+    '<p class="muted" id="st">Starting the camera…</p>' +
+    '<button class="link" id="type">Type the code instead</button>';
+  document.getElementById('type').onclick = function(){ stopCamera(); typeCode(action, ''); };
+
+  var st = document.getElementById('st');
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(function(s){
+      stream = s;
+      var v = document.getElementById('v');
+      if (!v) { stopCamera(); return; }
+      v.srcObject = s;
+      v.play().catch(function(){});
+      st.textContent = 'Point at the code on the screen…';
+      var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
+      var tick = function(){
+        if (!stream) return;
+        if (v.readyState === v.HAVE_ENOUGH_DATA){
+          canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+          ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+          var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          var found = jsQR(img.data, img.width, img.height);
+          if (found && found.data){
+            var m = String(found.data).match(/[#&?]s=([0-9A-Za-z]{8})/);
+            var code = m ? m[1] : (/^[0-9A-Za-z]{8}$/.test(String(found.data).trim()) ? found.data.trim() : null);
+            if (code){ S = normalise(code); stopCamera(); submit(action); return; }
+            st.textContent = 'That is not a Zanna Clock code — try the screen by the door.';
+          }
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    })
+    .catch(function(){
+      stopCamera();
+      typeCode(action, 'The camera is not available — check permissions. Type the code instead.');
+    });
+}
+
+function stopCamera(){
+  if (raf) cancelAnimationFrame(raf);
+  raf = null;
+  if (stream){ stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
+}
+
+function typeCode(action, note){
+  V.innerHTML = '<h1>Type the code</h1>' +
+    (note ? '<p class="muted">' + esc(note) + '</p>' : '') +
+    '<p>The 8 characters under the QR on the screen.</p>' +
+    '<input id="code" class="code" inputmode="latin" autocapitalize="characters" ' +
+      'autocomplete="off" spellcheck="false" maxlength="9" placeholder="XXXX-XXXX">' +
+    '<button class="btn" id="go">' + (action === 'in' ? 'Clock in' : 'Clock out') + '</button>' +
+    '<button class="link" id="back">Back</button>';
+  var inp = document.getElementById('code');
+  inp.focus();
+  inp.addEventListener('input', function(){
+    var v = inp.value.toUpperCase().replace(/[^0-9A-Z]/g, '');
+    inp.value = v.length > 4 ? v.slice(0, 4) + '-' + v.slice(4, 8) : v;
+  });
+  document.getElementById('go').onclick = function(){
+    S = normalise(inp.value); submit(action);
+  };
+  document.getElementById('back').onclick = function(){ render(); };
+}
+
+function submit(action){
+  V.innerHTML = '<div class="spin"></div><p class="muted">Working…</p>';
+  apiCall('submit', { s: S, a: action }, function(r){
+    if (!r || !r.ok){
+      V.innerHTML = '<h1>Not done</h1><p>' + esc(r && r.error ? r.error : 'Unknown problem') + '</p>' +
+        '<button class="btn ghost" id="again">Back</button>';
+      document.getElementById('again').onclick = function(){ S = ''; boot(); };
+      return;
+    }
+    var inn = (r.action === 'CLOCK_IN');
+    V.innerHTML = '<div class="tick">✓</div>' +
+      '<h1>' + (inn ? 'Clocked in' : 'Clocked out') + '</h1>' +
+      '<p class="big">' + esc(r.at) + '</p>' +
+      '<p class="muted">' + esc(r.name) + (r.dryRun ? ' · TEST MODE, nothing recorded' : '') + '</p>' +
+      '<p class="muted">' + (inn ? 'Have a good shift. Breaks are on the kitchen tablet.'
+                                 : 'See you tomorrow.') + '</p>';
+    /* A used code must not linger — the next tap should prove presence again. */
+    S = '';
+  }, fail);
+}
+
+/* ---------- boot ---------- */
+(function(){
+  document.getElementById('stamp').textContent = 'v' + APP_VERSION + ' · ' + APP_BUILD_DATE;
+  try { console.log('Zanna Clock phone app v' + APP_VERSION + ' (built ' + APP_BUILD_DATE + ')'); } catch(e){}
+  readHash();
+  boot();
+})();
+</script>
+</body>
+</html>
