@@ -167,10 +167,10 @@
      To change a URL or rotate the token: edit Script Properties. Done.
      ==================================================================== -->
 <script>
-  const EXEC_URL = "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec";
+  const EXEC_URL = "https://script.google.com/macros/s/AKfycbyJDs7Dh8UDakGcczmSdpcWBCDacKsXhIh8ZALlijaZE413VHO--ZCS7A4FaJDnYtcm/exec";
   // Bump on every change to this file, then check the corner of the live page
   // to confirm GitHub Pages actually rebuilt with your commit.
-  const PANEL_VERSION = "1.5.0 (2026-08-18)";
+  const PANEL_VERSION = "1.5.1 (2026-08-19)";
 </script>
 
   <header>
@@ -369,11 +369,11 @@
   }
 
   async function verify(token){
-    const res = await fetch(EXEC_URL, {
+    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 12000); const res = await fetch(EXEC_URL, { signal: ctl.signal,
       method:'POST',
       body: JSON.stringify({ action:'getPanelConfig', token: token })
     });
-    return res.json();
+    clearTimeout(timer); if (!res.ok) throw new Error('HTTP ' + res.status); return res.json();
   }
 
   function build(apps){
