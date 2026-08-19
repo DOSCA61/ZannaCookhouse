@@ -1,0 +1,106 @@
+{
+    "_comment":  [
+                     "Registry of Apps Script projects. This file is the single source of truth for",
+                     "which script ID and which deployment ID each project belongs to.",
+                     "",
+                     "FILL IN every value marked FILL_ME before running any tool. Get them with:",
+                     "  clasp deployments        (run inside the project folder, after cloning)",
+                     "",
+                     "archivedScriptIds exists because of A8: there are duplicate, identically-named",
+                     "backup projects. Any script ID listed there is REFUSED by preflight, so a stale",
+                     "backup can never be pushed to or mistaken for live."
+                 ],
+    "projects":  {
+                     "zanna-clock":  {
+                                         "label":  "Zanna Clock",
+                                         "dir":  "_gas/zanna-clock",
+                                         "scriptId":  "1aJoYlWavn2NS6adLfImGRPvl61FibCiTQcV4jUdkhcsUExQ_v2OwyVNY",
+                                         "deploymentId":  "AKfycbyJDs7Dh8UDakGcczmSdpcWBCDacKsXhIh8ZALlijaZE413VHO--ZCS7A4FaJDnYtcm",
+                                         "execUrl":  "https://script.google.com/macros/s/AKfycbyJDs7Dh8UDakGcczmSdpcWBCDacKsXhIh8ZALlijaZE413VHO--ZCS7A4FaJDnYtcm/exec",
+                                         "expectedTimezone":  "Europe/Dublin",
+                                         "requiredFiles":  [
+                                                               "appsscript.json",
+                                                               "Code.js",
+                                                               "Clock_QR.js",
+                                                               "Clock_QR_Post.js",
+                                                               "Payroll_App.js",
+                                                               "Rename_Staff.js",
+                                                               "Fair Leave Audit.js",
+                                                               "SeedData.js",
+                                                               "Go_Live_Reset_FL.js"
+                                                           ],
+                                         "versionProbe":  {
+                                                              "method":  "GET",
+                                                              "expectContains":  "\"version\""
+                                                          },
+                                         "notes":  "File list confirmed by clasp clone 2026-08-19 Ã¢â‚¬â€ 9 files. clasp represents server .gs files as .js locally and converts back on push. Three files are NOT in the project documentation and were found by this clone: Clock_QR_Post.js (undocumented; likely the doPost route clock-mobile.html expected Ã¢â‚¬â€ see Trap 4), SeedData.js (a test-data seeder live in production, which contradicts Outstanding_Work A5), and Go_Live_Reset_FL.js (an _FL-suffixed FairLeave file living in the Clock namespace). They are listed as required so a push can never silently delete them. Investigate before removing any."
+                                     },
+                     "fairleave":  {
+                                       "label":  "FairLeave Ã¢â‚¬â€ Zanna",
+                                       "dir":  "_gas/fairleave",
+                                       "scriptId":  "1TNaZ4PgAiuxJxPzOHthh9NVBhOTs4Tduv4z4bFLzLSn6zvgFMANVTbHc",
+                                       "deploymentId":  "AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag",
+                                       "execUrl":  "https://script.google.com/macros/s/AKfycbyt-o9li8OX7h3UPjWakQaVpJDk11MRC3DUFhDz8NlW8XZYYi4PGyRQeyJWRV0Ex95Wag/exec",
+                                       "expectedTimezone":  "Europe/Dublin",
+                                       "requiredFiles":  [
+                                                             "appsscript.json",
+                                                             "Code.js",
+                                                             "Admin.js",
+                                                             "Admin_Scheduler.js",
+                                                             "Go live reset.js"
+                                                         ],
+                                       "versionProbe":  {
+                                                            "method":  "GET",
+                                                            "expectContains":  "FairLeave"
+                                                        },
+                                       "notes":  "File list confirmed by clasp clone 2026-08-19 Ã¢â‚¬â€ 5 files, matching Go_Live_Runbook. scriptId confirmed from the live spreadsheet\u0027s Extensions \u003e Apps Script URL. Admin.js and Admin_Scheduler.js are bound here, not to a project of their own."
+                                   }
+                 },
+    "archivedScriptIds":  [
+                              {
+                                  "scriptId":  "1Ro-RE_PoOrFT9UtfPNDgABHnhnjwTXLzdFifFUhTsHrpqTdWCpXGYbnV",
+                                  "reason":  "FairLeave duplicate, last modified 16 Aug 2026. Believed to be the bound script of \u0027Pre GoLive Copy of FairLeave Ã¢â‚¬â€ Zanna\u0027. NEVER PUSH HERE."
+                              }
+                          ],
+    "frontEnd":  {
+                     "dir":  ".",
+                     "pages":  [
+                                   {
+                                       "file":  "index.html",
+                                       "label":  "Control Panel",
+                                       "backend":  "fairleave"
+                                   },
+                                   {
+                                       "file":  "admin.html",
+                                       "label":  "Data Maintenance console",
+                                       "backend":  "fairleave"
+                                   },
+                                   {
+                                       "file":  "zanna-clock-v1.0.html",
+                                       "label":  "Kiosk / displays / emergency",
+                                       "backend":  "zanna-clock"
+                                   },
+                                   {
+                                       "file":  "payroll-v1.0.html",
+                                       "label":  "Payroll app",
+                                       "backend":  "zanna-clock"
+                                   },
+                                   {
+                                       "file":  "clock-mobile.html",
+                                       "label":  "Phone clock-in",
+                                       "backend":  "zanna-clock"
+                                   },
+                                   {
+                                       "file":  "manual.html",
+                                       "label":  "Manual",
+                                       "backend":  "zanna-clock"
+                                   },
+                                   {
+                                       "file":  "holiday-manager-v2.10_1.html",
+                                       "label":  "FairLeave front-end",
+                                       "backend":  "fairleave"
+                                   }
+                               ],
+                     "notes":  "Filenames are deliberately stable so device URLs never break. The version in the page footer is the truth, not the filename. admin.html holds TWO exec URLs on purpose (EXEC_URL to FairLeave, CLOCK_EXEC_URL to the Clock) Ã¢â‚¬â€ that is the documented exception to Trap 1 and must not be \u0027fixed\u0027."
+                 }
+}

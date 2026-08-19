@@ -1,0 +1,37 @@
+# ─── CREDENTIALS. The single most important lines in this file. ───────────────
+#
+# .clasprc.json holds a Google OAuth refresh token for the account that ran
+# `clasp login`. Committing it hands anyone who can read the repo the ability to
+# push code into your Apps Script projects. Treat it exactly as you would a
+# password.
+#
+# `clasp login` normally writes it to your home directory, which is safely outside
+# this repo. `clasp login --creds` or `--no-localhost` can put a copy in the
+# working directory instead, which is how it ends up committed by accident.
+.clasprc.json
+**/.clasprc.json
+*.credentials.json
+client_secret*.json
+.env
+.env.*
+
+# ─── NOT ignored, and on purpose ──────────────────────────────────────────────
+#
+# .clasp.json IS committed. It contains only the scriptId, which is not a secret —
+# it identifies the project, it does not grant access to it. Committing it is what
+# pins each folder to one specific project, which is what makes tools/preflight.mjs
+# able to catch the A8 duplicate-project trap. Do not add it here.
+
+# ─── Ordinary noise ───────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Jekyll build output, if Pages ever builds locally
+_site/
+.jekyll-cache/
+.jekyll-metadata

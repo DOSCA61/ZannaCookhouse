@@ -1,0 +1,30 @@
+# GitHub Pages / Jekyll configuration for dosca61.github.io/ZannaCookhouse
+#
+# THE ONE JOB THIS FILE DOES: keep server-side source OFF the public web.
+#
+# The Apps Script source now lives in this repository so that a front-end page and
+# the backend it talks to can change in a single commit. GitHub Pages publishes the
+# repository, so without this file `_gas/fairleave/Code.gs` would become a URL any
+# stranger could read.
+#
+# Two defences, deliberately overlapping:
+#   - `_gas` is underscore-prefixed, and Jekyll skips underscore directories
+#   - it is also named explicitly below, so the intent survives a rename
+#
+# VERIFY, DO NOT ASSUME. Run `node tools/check-exposure.mjs` after your first push
+# and any time the Pages settings change. If a `.nojekyll` file ever appears in the
+# repo root, this entire file stops being read and the source goes public silently.
+
+exclude:
+  - _gas
+  - tools
+  - node_modules
+  - package.json
+  - package-lock.json
+  - CLASP_RUNBOOK.md
+  - .clasp.json
+  - .clasprc.json
+
+# Nothing here is a Jekyll site — the HTML pages are plain static files and are
+# served as-is. This config exists only for the exclude list above.
+plugins: []
